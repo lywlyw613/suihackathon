@@ -187,16 +187,42 @@ export function ChatroomDetail() {
             // Decrypt content
             let decryptedContent = "";
             try {
-              // For system message (first chat), encrypted_content might be empty or unencrypted
-              if (encryptedBytes.length === 0) {
-                decryptedContent = "System Message: This chat is encrypted and recorded on Sui Chain";
+              // System message (first chat with previous_chat_id = null) is not encrypted
+              if (isSystemMessage) {
+                // System message is stored as plain text bytes
+                const textDecoder = new TextDecoder();
+                decryptedContent = textDecoder.decode(encryptedBytes);
+                // If decoding fails or is empty, use default system message
+                if (!decryptedContent || decryptedContent.trim().length === 0) {
+                  decryptedContent = "System Message: This chat is encrypted and recorded on Sui Chain";
+                }
+              } else if (encryptedBytes.length === 0) {
+                decryptedContent = "[Empty Message]";
+              } else if (encryptedBytes.length < 12) {
+                // Encrypted content should have at least 12 bytes (IV) + encrypted data
+                console.warn("Encrypted content too short, might be corrupted");
+                decryptedContent = "[Decryption Failed: Invalid format]";
               } else {
+                // Regular encrypted message - decrypt it
                 decryptedContent = await decryptMessage(encryptedBytes, key.key);
               }
             } catch (e) {
               console.error("Error decrypting:", e);
-              // Fallback: show raw content if decryption fails
-              decryptedContent = "[Decryption Failed]";
+              console.error("Encrypted bytes length:", encryptedBytes.length);
+              console.error("Key length:", key.key.length);
+              console.error("Is system message:", isSystemMessage);
+              // Fallback: show error message
+              if (isSystemMessage) {
+                // For system message, try to decode as text
+                try {
+                  const textDecoder = new TextDecoder();
+                  decryptedContent = textDecoder.decode(encryptedBytes) || "System Message: This chat is encrypted and recorded on Sui Chain";
+                } catch {
+                  decryptedContent = "System Message: This chat is encrypted and recorded on Sui Chain";
+                }
+              } else {
+                decryptedContent = "[Decryption Failed]";
+              }
             }
 
             // Handle chatroom_id format
@@ -221,6 +247,9 @@ export function ChatroomDetail() {
 
             console.log("Parsed chatroom_id:", parsedChatroomId);
             console.log("Parsed previous_chat_id:", parsedPreviousChatId);
+            
+            // Check if this is the system message (first chat with previous_chat_id = null)
+            const isSystemMessage = parsedPreviousChatId === null;
 
             chatList.push({
               objectId: currentChatId,

@@ -36,8 +36,8 @@ export async function encryptMessage(
 
   // Combine IV + encrypted content
   const result = new Uint8Array(iv.length + encrypted.byteLength);
-  result.set(iv, 0);
-  result.set(new Uint8Array(encrypted), iv.length);
+  result.set(iv, 0); // Set IV at the beginning
+  result.set(new Uint8Array(encrypted), iv.length); // Set encrypted content after IV
 
   return result;
 }
