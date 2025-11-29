@@ -52,7 +52,8 @@ export function useZkLogin() {
     }
 
     setIsLoading(true);
-    const redirectUri = window.location.origin + window.location.pathname;
+    // Use root path as redirect URI for consistency
+    const redirectUri = window.location.origin;
     const authUrl = getGoogleOAuthUrl(GOOGLE_CLIENT_ID, redirectUri);
     
     // Redirect to Google OAuth
