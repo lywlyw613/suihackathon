@@ -12,7 +12,7 @@
 import { SuiClient, getFullnodeUrl } from '@mysten/sui/client';
 import { Ed25519Keypair } from '@mysten/sui/keypairs/ed25519';
 import { Transaction } from '@mysten/sui/transactions';
-import { fromHEX, fromB64 } from '@mysten/sui/utils';
+import { fromHEX } from '@mysten/sui/utils';
 
 export default async function handler(req: any, res: any) {
   // Only allow POST requests
@@ -43,9 +43,8 @@ export default async function handler(req: any, res: any) {
     let sponsorKeypair: Ed25519Keypair;
     try {
       if (sponsorPrivateKey.startsWith('suiprivkey')) {
-        // Bech32 format - extract base64 part and decode
-        const base64Part = sponsorPrivateKey.substring(10); // Remove 'suiprivkey' prefix
-        sponsorKeypair = Ed25519Keypair.fromSecretKey(fromB64(base64Part));
+        // Bech32 format - Ed25519Keypair.fromSecretKey can directly accept Bech32 string
+        sponsorKeypair = Ed25519Keypair.fromSecretKey(sponsorPrivateKey);
       } else {
         // Hex format
         sponsorKeypair = Ed25519Keypair.fromSecretKey(fromHEX(sponsorPrivateKey));
