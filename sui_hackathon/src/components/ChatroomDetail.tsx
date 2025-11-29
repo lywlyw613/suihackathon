@@ -26,6 +26,7 @@ export function ChatroomDetail() {
   const client = useSuiClient();
   const pollingIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const lastCheckedChatIdRef = useRef<string | null>(null);
+  const pusherChannelRef = useRef<any>(null); // Store Pusher channel reference
 
   // Fetch user's Key for this chatroom
   const { data: ownedObjects } = useSuiClientQuery(
@@ -318,15 +319,18 @@ export function ChatroomDetail() {
       const channelName = `chatroom-${chatroomId}`;
       const channel = pusherClient.subscribe(channelName);
       
+      // Store channel reference for triggering events
+      pusherChannelRef.current = channel;
+      
       // Wait for subscription to be successful
       channel.bind('pusher:subscription_succeeded', () => {
         console.log('Pusher subscription succeeded for', channelName);
       });
 
       // Listen for new message events (client events must start with 'client-')
-      channel.bind('client-new-message', () => {
+      channel.bind('client-new-message', (data: any) => {
         // When new message event is received, refetch chats
-        console.log('New message event received, refetching chats...');
+        console.log('New message event received, refetching chats...', data);
         // Trigger refetch by updating previousChatId
         client.getObject({
           id: chatroomId,
@@ -349,10 +353,16 @@ export function ChatroomDetail() {
         });
       });
 
+      // Handle subscription errors
+      channel.bind('pusher:subscription_error', (error: any) => {
+        console.error('Pusher subscription error:', error);
+      });
+
       // Cleanup on unmount
       return () => {
         channel.unbind_all();
         channel.unsubscribe();
+        pusherChannelRef.current = null;
       };
     }
 
@@ -558,15 +568,18 @@ export function ChatroomDetail() {
                       console.log("Sponsored transaction sent:", result);
                       setMessage("");
                       // Trigger Pusher event
-                      if (pusherClient && chatroomId) {
-                        const channelName = `chatroom-${chatroomId}`;
-                        const channel = pusherClient.channel(channelName);
-                        if (channel && channel.subscribed) {
-                          channel.trigger('client-new-message', {
+                      if (pusherChannelRef.current && pusherChannelRef.current.subscribed) {
+                        try {
+                          pusherChannelRef.current.trigger('client-new-message', {
                             chatroomId,
                             timestamp: Date.now(),
                           });
+                          console.log('Pusher event triggered (sponsored tx)');
+                        } catch (error) {
+                          console.error('Error triggering Pusher event:', error);
                         }
+                      } else {
+                        console.warn('Pusher channel not ready for sponsored tx');
                       }
                       setIsSending(false);
                     } else {
@@ -606,24 +619,20 @@ export function ChatroomDetail() {
             console.log("Message sent:", result);
             setMessage("");
             // Trigger Pusher event to notify other clients (if Pusher is available)
-            if (pusherClient && chatroomId) {
-              const channelName = `chatroom-${chatroomId}`;
-              const channel = pusherClient.channel(channelName);
-              if (channel && channel.subscribed) {
-                // Use client events for real-time updates (must start with 'client-')
-                try {
-                  channel.trigger('client-new-message', {
-                    chatroomId,
-                    timestamp: Date.now(),
-                  });
-                  console.log('Pusher event triggered:', channelName);
-                } catch (error) {
-                  console.error('Error triggering Pusher event:', error);
-                  // Client events might not be enabled, fall back to polling
-                }
-              } else {
-                console.warn('Pusher channel not subscribed:', channelName);
+            if (pusherChannelRef.current && pusherChannelRef.current.subscribed) {
+              // Use client events for real-time updates (must start with 'client-')
+              try {
+                pusherChannelRef.current.trigger('client-new-message', {
+                  chatroomId,
+                  timestamp: Date.now(),
+                });
+                console.log('Pusher event triggered (normal tx)');
+              } catch (error) {
+                console.error('Error triggering Pusher event:', error);
+                // Client events might not be enabled, fall back to polling
               }
+            } else {
+              console.warn('Pusher channel not ready for normal tx');
             }
             // Refresh chats after sending - polling will pick up the new message
             // No need to reload the page anymore

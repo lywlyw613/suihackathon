@@ -1,0 +1,118 @@
+/**
+ * Vercel Serverless Function for Friends Management
+ * 
+ * This endpoint handles friend relationships
+ */
+
+import { MongoClient } from 'mongodb';
+
+// Reuse MongoDB connection
+async function connectToDatabase() {
+  const uri = process.env.MONGODB_URI;
+  if (!uri) {
+    throw new Error('MONGODB_URI environment variable is not set');
+  }
+
+  const client = new MongoClient(uri);
+  await client.connect();
+  const db = client.db('sui_chat');
+  return { client, db };
+}
+
+export default async function handler(req: any, res: any) {
+  // Set CORS headers
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, DELETE, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
+  }
+
+  try {
+    const { db } = await connectToDatabase();
+    const profilesCollection = db.collection('profiles');
+
+    // GET - Get friends list for a user
+    if (req.method === 'GET') {
+      const { address } = req.query;
+
+      if (!address) {
+        return res.status(400).json({ error: 'Address is required' });
+      }
+
+      const profile = await profilesCollection.findOne({ address });
+      const friendAddresses = profile?.friends || [];
+
+      // Get friend profiles
+      const friends = await profilesCollection
+        .find({ address: { $in: friendAddresses } })
+        .toArray();
+
+      return res.status(200).json({
+        friends: friends.map((f) => ({
+          address: f.address,
+          name: f.name,
+          avatarUrl: f.avatarUrl,
+          bio: f.bio,
+        })),
+        count: friends.length,
+      });
+    }
+
+    // POST - Add a friend
+    if (req.method === 'POST') {
+      const { address, friendAddress } = req.body;
+
+      if (!address || !friendAddress) {
+        return res.status(400).json({ error: 'Address and friendAddress are required' });
+      }
+
+      if (address === friendAddress) {
+        return res.status(400).json({ error: 'Cannot add yourself as a friend' });
+      }
+
+      const result = await profilesCollection.updateOne(
+        { address },
+        {
+          $addToSet: { friends: friendAddress },
+          $setOnInsert: { createdAt: new Date() },
+        },
+        { upsert: true }
+      );
+
+      return res.status(200).json({
+        success: true,
+        added: result.modifiedCount > 0 || result.upsertedCount > 0,
+      });
+    }
+
+    // DELETE - Remove a friend
+    if (req.method === 'DELETE') {
+      const { address, friendAddress } = req.query;
+
+      if (!address || !friendAddress) {
+        return res.status(400).json({ error: 'Address and friendAddress are required' });
+      }
+
+      const result = await profilesCollection.updateOne(
+        { address },
+        { $pull: { friends: friendAddress } }
+      );
+
+      return res.status(200).json({
+        success: true,
+        removed: result.modifiedCount > 0,
+      });
+    }
+
+    return res.status(405).json({ error: 'Method not allowed' });
+  } catch (error: any) {
+    console.error('Friends API error:', error);
+    return res.status(500).json({
+      error: 'Internal server error',
+      message: error.message,
+    });
+  }
+}
+

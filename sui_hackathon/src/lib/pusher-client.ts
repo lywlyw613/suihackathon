@@ -10,6 +10,15 @@ if (typeof window !== 'undefined' && PUSHER_KEY) {
     cluster: PUSHER_CLUSTER,
     enabledTransports: ['ws', 'wss'],
   });
+  
+  // Log connection status for debugging
+  pusherClient.connection.bind('connected', () => {
+    console.log('Pusher connected');
+  });
+  
+  pusherClient.connection.bind('error', (err: any) => {
+    console.error('Pusher connection error:', err);
+  });
 }
 
 export { pusherClient };

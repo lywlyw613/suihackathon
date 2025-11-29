@@ -1,0 +1,195 @@
+/* X.com (Twitter) Theme Styles */
+
+:root {
+  /* X.com Color Palette */
+  --x-black: #000000;
+  --x-white: #ffffff;
+  --x-blue: #1DA1F2;
+  --x-blue-hover: #1a8cd8;
+  --x-gray-50: #f7f9f9;
+  --x-gray-100: #eff3f4;
+  --x-gray-200: #e7e9ea;
+  --x-gray-300: #d1d9db;
+  --x-gray-400: #8b98a5;
+  --x-gray-500: #536471;
+  --x-gray-600: #0f1419;
+  --x-gray-700: #16181c;
+  --x-gray-800: #1e2124;
+  --x-gray-900: #202327;
+  
+  /* Border colors */
+  --x-border: #2f3336;
+  
+  /* Text colors */
+  --x-text-primary: var(--x-white);
+  --x-text-secondary: #8b98a5;
+  --x-text-muted: #536471;
+  
+  /* Background colors */
+  --x-bg-primary: var(--x-black);
+  --x-bg-secondary: var(--x-gray-700);
+  --x-bg-hover: #181818;
+  
+  /* Spacing */
+  --x-spacing-xs: 4px;
+  --x-spacing-sm: 8px;
+  --x-spacing-md: 16px;
+  --x-spacing-lg: 24px;
+  --x-spacing-xl: 32px;
+  
+  /* Border radius */
+  --x-radius-sm: 4px;
+  --x-radius-md: 8px;
+  --x-radius-lg: 16px;
+  --x-radius-full: 9999px;
+  
+  /* Shadows */
+  --x-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --x-shadow-md: 0 4px 6px rgba(0, 0, 0, 0.3);
+  --x-shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.3);
+}
+
+/* Override Radix UI theme variables for X.com style */
+[data-theme="x"] {
+  --gray-1: var(--x-black);
+  --gray-2: var(--x-gray-700);
+  --gray-3: var(--x-gray-800);
+  --gray-4: var(--x-gray-900);
+  --gray-5: var(--x-gray-500);
+  --gray-6: var(--x-border);
+  --gray-7: var(--x-gray-400);
+  --gray-8: var(--x-gray-300);
+  --gray-9: var(--x-gray-200);
+  --gray-10: var(--x-gray-100);
+  --gray-11: var(--x-gray-50);
+  --gray-12: var(--x-white);
+  
+  --blue-1: #0a1929;
+  --blue-2: #132f4c;
+  --blue-3: #1a4d7a;
+  --blue-4: #206ba8;
+  --blue-5: #2589d6;
+  --blue-6: var(--x-blue);
+  --blue-7: var(--x-blue-hover);
+  --blue-8: #4db3f2;
+  --blue-9: #7ac5f5;
+  --blue-10: #a7d7f8;
+  --blue-11: #d4e9fb;
+  --blue-12: #e1f0fc;
+}
+
+/* Global styles */
+body {
+  background-color: var(--x-black);
+  color: var(--x-white);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+}
+
+/* X.com style button */
+.x-button-primary {
+  background-color: var(--x-blue);
+  color: var(--x-white);
+  border: none;
+  border-radius: var(--x-radius-full);
+  padding: var(--x-spacing-sm) var(--x-spacing-lg);
+  font-weight: 700;
+  font-size: 15px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.x-button-primary:hover {
+  background-color: var(--x-blue-hover);
+}
+
+.x-button-secondary {
+  background-color: transparent;
+  color: var(--x-white);
+  border: 1px solid var(--x-border);
+  border-radius: var(--x-radius-full);
+  padding: var(--x-spacing-sm) var(--x-spacing-lg);
+  font-weight: 700;
+  font-size: 15px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.x-button-secondary:hover {
+  background-color: var(--x-bg-hover);
+}
+
+/* X.com style input */
+.x-input {
+  background-color: var(--x-gray-700);
+  border: 1px solid var(--x-border);
+  border-radius: var(--x-radius-md);
+  padding: var(--x-spacing-md);
+  color: var(--x-white);
+  font-size: 15px;
+  width: 100%;
+}
+
+.x-input:focus {
+  outline: 2px solid var(--x-blue);
+  outline-offset: -2px;
+  border-color: var(--x-blue);
+}
+
+.x-input::placeholder {
+  color: var(--x-text-secondary);
+}
+
+/* X.com style card */
+.x-card {
+  background-color: var(--x-gray-700);
+  border: 1px solid var(--x-border);
+  border-radius: var(--x-radius-lg);
+  padding: var(--x-spacing-lg);
+}
+
+/* X.com style avatar */
+.x-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: var(--x-radius-full);
+  object-fit: cover;
+  background-color: var(--x-gray-500);
+}
+
+.x-avatar-large {
+  width: 80px;
+  height: 80px;
+  border-radius: var(--x-radius-full);
+  object-fit: cover;
+  background-color: var(--x-gray-500);
+}
+
+/* X.com style text */
+.x-text-primary {
+  color: var(--x-text-primary);
+  font-size: 15px;
+  line-height: 1.5;
+}
+
+.x-text-secondary {
+  color: var(--x-text-secondary);
+  font-size: 13px;
+}
+
+.x-text-muted {
+  color: var(--x-text-muted);
+  font-size: 13px;
+}
+
+/* X.com style link */
+.x-link {
+  color: var(--x-blue);
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.x-link:hover {
+  text-decoration: underline;
+}
+
