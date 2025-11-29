@@ -93,9 +93,15 @@ export function uint8ArrayToHex(arr: Uint8Array): string {
 }
 
 /**
- * Convert hex string to Uint8Array
+ * Convert hex string or array to Uint8Array
  */
-export function hexToUint8Array(hex: string): Uint8Array {
+export function hexToUint8Array(hex: string | number[]): Uint8Array {
+  if (Array.isArray(hex)) {
+    return new Uint8Array(hex);
+  }
+  if (typeof hex !== "string") {
+    throw new Error("Invalid input: expected string or array");
+  }
   const matches = hex.match(/.{1,2}/g);
   if (!matches) {
     throw new Error("Invalid hex string");

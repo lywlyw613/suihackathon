@@ -33,24 +33,35 @@ export function useChatrooms() {
     for (const obj of ownedObjects.data) {
       if (obj.data?.content && "fields" in obj.data.content) {
         const fields = obj.data.content.fields as {
-          chatroom_id: string;
-          key: string; // hex string or bytes array
+          chatroom_id: string | { fields?: { id: string } };
+          key: string | number[];
         };
         try {
-          // Handle both hex string and array format
+          // Handle chatroom_id format - could be string or object
+          let chatroomId: string;
+          if (typeof fields.chatroom_id === "string") {
+            chatroomId = fields.chatroom_id;
+          } else if (fields.chatroom_id && typeof fields.chatroom_id === "object" && "fields" in fields.chatroom_id) {
+            chatroomId = fields.chatroom_id.fields?.id || "";
+          } else {
+            continue;
+          }
+          
+          // Handle key format - could be hex string or array
           let keyBytes: Uint8Array;
-          if (typeof fields.key === "string") {
-            // If it's a hex string
-            keyBytes = hexToUint8Array(fields.key);
-          } else if (Array.isArray(fields.key)) {
+          if (Array.isArray(fields.key)) {
             // If it's already an array
             keyBytes = new Uint8Array(fields.key);
+          } else if (typeof fields.key === "string") {
+            // If it's a hex string
+            keyBytes = hexToUint8Array(fields.key);
           } else {
-            throw new Error("Invalid key format");
+            console.error("Key field type:", typeof fields.key, fields.key);
+            throw new Error(`Invalid key format: ${typeof fields.key}`);
           }
           keys.push({
             objectId: obj.data.objectId,
-            chatroomId: fields.chatroom_id,
+            chatroomId: chatroomId,
             key: keyBytes,
           });
         } catch (e) {
