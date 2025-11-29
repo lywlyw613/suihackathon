@@ -62,7 +62,7 @@ export function ChatroomList() {
                   Created by {formatAddress(chatroom.creator)}
                 </Text>
                 <Text size="1" color="gray">
-                  Created {formatDistanceToNow(new Date(chatroom.createdAt), { addSuffix: true })}
+                  Created {chatroom.createdAt ? formatDistanceToNow(new Date(chatroom.createdAt), { addSuffix: true }) : "Unknown"}
                 </Text>
               </Box>
             </Flex>

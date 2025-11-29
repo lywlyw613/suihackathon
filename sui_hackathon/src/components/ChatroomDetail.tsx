@@ -399,22 +399,39 @@ export function ChatroomDetail() {
             {chats.map((chat) => (
               <Flex
                 key={chat.objectId}
-                justify={chat.sender === account?.address ? "end" : "start"}
+                direction="column"
+                gap="1"
+                align={chat.sender === account?.address ? "end" : "start"}
+                style={{ maxWidth: "70%" }}
               >
+                <Flex
+                  align="center"
+                  gap="2"
+                  style={{
+                    alignSelf: chat.sender === account?.address ? "flex-end" : "flex-start",
+                  }}
+                >
+                  {chat.sender !== account?.address && (
+                    <Text size="1" color="gray" weight="medium">
+                      {formatAddress(chat.sender)}
+                    </Text>
+                  )}
+                  <Text size="1" color="gray">
+                    {chat.timestamp ? formatDistanceToNow(new Date(chat.timestamp), {
+                      addSuffix: true,
+                    }) : "Unknown"}
+                  </Text>
+                </Flex>
                 <Card
                   style={{
-                    maxWidth: "70%",
                     background:
                       chat.sender === account?.address
                         ? "var(--blue-9)"
                         : "var(--gray-4)",
                   }}
                 >
-                  <Text size="3">{chat.decryptedContent || "..."}</Text>
-                  <Text size="1" color="gray" style={{ display: "block", marginTop: "var(--space-1)" }}>
-                    {formatDistanceToNow(new Date(chat.timestamp), {
-                      addSuffix: true,
-                    })}
+                  <Text size="3" style={{ color: chat.sender === account?.address ? "white" : "inherit" }}>
+                    {chat.decryptedContent || "..."}
                   </Text>
                 </Card>
               </Flex>
