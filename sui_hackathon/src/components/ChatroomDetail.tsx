@@ -486,12 +486,16 @@ export function ChatroomDetail() {
         if (sponsorApiUrl) {
           // Call backend API to sponsor the transaction
           try {
+            // Build transaction and serialize to bytes
             const txBytes = await tx.build({ client });
+            // Convert Uint8Array to base64 for JSON transmission
+            const txBytesBase64 = btoa(String.fromCharCode(...txBytes));
+            
             const response = await fetch(sponsorApiUrl, {
               method: "POST",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({
-                transaction: txBytes,
+                transaction: txBytesBase64,
                 sender: account.address,
               }),
             });
