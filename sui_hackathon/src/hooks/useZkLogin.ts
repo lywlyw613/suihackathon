@@ -26,33 +26,37 @@ export function useZkLogin() {
       const idToken = params.get("id_token");
       
       if (idToken) {
-        try {
-          const claims = parseJWT(idToken);
-          console.log("Google OAuth successful:", claims);
-          
-          // Store token temporarily
-          localStorage.setItem("zklogin_token", idToken);
-          localStorage.setItem("zklogin_email", claims.email || "");
-          
-          // Try to complete zkLogin flow
+        const handleOAuth = async () => {
           try {
-            const zkLoginResult = await completeZkLogin(idToken);
-            console.log("zkLogin result:", zkLoginResult);
+            const claims = parseJWT(idToken);
+            console.log("Google OAuth successful:", claims);
             
-            // Store zkLogin address
-            if (zkLoginResult.address) {
-              localStorage.setItem("zklogin_address", zkLoginResult.address);
+            // Store token temporarily
+            localStorage.setItem("zklogin_token", idToken);
+            localStorage.setItem("zklogin_email", claims.email || "");
+            
+            // Try to complete zkLogin flow
+            try {
+              const zkLoginResult = await completeZkLogin(idToken);
+              console.log("zkLogin result:", zkLoginResult);
+              
+              // Store zkLogin address
+              if (zkLoginResult.address) {
+                localStorage.setItem("zklogin_address", zkLoginResult.address);
+              }
+            } catch (zkError) {
+              console.warn("zkLogin proof generation failed (using OAuth only):", zkError);
+              // Continue with OAuth-only flow for hackathon demo
             }
-          } catch (zkError) {
-            console.warn("zkLogin proof generation failed (using OAuth only):", zkError);
-            // Continue with OAuth-only flow for hackathon demo
+            
+            // Navigate to home
+            navigate("/home");
+          } catch (error) {
+            console.error("Error parsing JWT:", error);
           }
-          
-          // Navigate to home
-          navigate("/home");
-        } catch (error) {
-          console.error("Error parsing JWT:", error);
-        }
+        };
+        
+        handleOAuth();
       }
     }
   }, [navigate]);

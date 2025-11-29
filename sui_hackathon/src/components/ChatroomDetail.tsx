@@ -231,7 +231,7 @@ export function ChatroomDetail() {
         arguments: [
           tx.object(chatroomId), // chatroom (shared object)
           tx.object(key.objectId), // key
-          previousChatId ? tx.pure.id(previousChatId) : tx.pure.option("ID", null), // previous_chat_id
+          previousChatId ? tx.pure.id(previousChatId) : tx.pure.option("0x2::object::ID", null), // previous_chat_id
           tx.pure.vector("u8", encryptedBytes), // encrypted_content
         ],
       });
