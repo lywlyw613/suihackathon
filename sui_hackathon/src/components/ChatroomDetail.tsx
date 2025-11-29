@@ -1,12 +1,13 @@
 import { useParams, useNavigate } from "react-router-dom";
 import { useCurrentAccount, useSuiClientQuery, useSignAndExecuteTransaction, useSuiClient } from "@mysten/dapp-kit";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Transaction } from "@mysten/sui/transactions";
 import { PACKAGE_ID, MODULE_NAMES, FUNCTION_NAMES } from "../lib/constants";
 import { encryptMessage, decryptMessage } from "../lib/crypto";
 import { ChatData, KeyObject } from "../types";
 import { formatAddress } from "../lib/utils";
 import { formatDistanceToNow } from "date-fns";
+import { pusherClient } from "../lib/pusher-client";
 import { Box, Flex, Text, Button, TextField, Card } from "@radix-ui/themes";
 
 export function ChatroomDetail() {
@@ -20,6 +21,8 @@ export function ChatroomDetail() {
   const [previousChatId, setPreviousChatId] = useState<string | null>(null);
   const { mutate: signAndExecute } = useSignAndExecuteTransaction();
   const client = useSuiClient();
+  const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const lastCheckedChatIdRef = useRef<string | null>(null);
 
   // Fetch user's Key for this chatroom
   const { data: ownedObjects } = useSuiClientQuery(
@@ -382,6 +385,7 @@ export function ChatroomDetail() {
           tx.object(key.objectId), // key
           previousChatIdArg, // previous_chat_id (must match chatroom's last_chat_id)
           tx.pure.vector("u8", encryptedBytes), // encrypted_content
+          tx.object("0x6"), // Clock object at address 0x6
         ],
       });
 
@@ -394,11 +398,18 @@ export function ChatroomDetail() {
           onSuccess: (result) => {
             console.log("Message sent:", result);
             setMessage("");
-            // Refresh chats after sending
-            // The useEffect will automatically refetch when previousChatId updates
-            setTimeout(() => {
-              window.location.reload(); // Simple refresh for now
-            }, 1000);
+            // Trigger Pusher event to notify other clients (if Pusher is available)
+            if (pusherClient && chatroomId) {
+              const channel = pusherClient.getChannel(`chatroom-${chatroomId}`);
+              if (channel) {
+                channel.trigger('client-new-message', {
+                  chatroomId,
+                  timestamp: Date.now(),
+                });
+              }
+            }
+            // Refresh chats after sending - polling will pick up the new message
+            // No need to reload the page anymore
           },
           onError: (error) => {
             console.error("Error sending message:", error);

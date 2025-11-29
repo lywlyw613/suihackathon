@@ -2,6 +2,7 @@ module sui_chat::chat;
 
 use sui::object::{Self, ID, UID};
 use sui::tx_context::{Self, TxContext};
+use sui::clock::{Self, Clock};
 use std::option;
 
 /// Chat Object - owned by sender, contains encrypted message
@@ -20,13 +21,14 @@ public fun create(
     sender: address,
     previous_chat_id: option::Option<ID>,
     encrypted_content: vector<u8>,
+    clock: &Clock,
     ctx: &mut TxContext,
 ): Chat {
     Chat {
         id: object::new(ctx),
         chatroom_id,
         sender,
-        timestamp: tx_context::epoch_timestamp_ms(ctx),
+        timestamp: clock::timestamp_ms(clock),
         previous_chat_id,
         encrypted_content,
     }
