@@ -295,10 +295,99 @@ export function ChatroomDetail() {
 
       // Reverse to show oldest first
       setChats(chatList.reverse());
+      
+      // Update last checked chat ID for polling
+      if (chatList.length > 0) {
+        const latestChat = chatList[chatList.length - 1];
+        lastCheckedChatIdRef.current = latestChat.objectId;
+      }
     };
 
     fetchChats();
   }, [previousChatId, key, client]);
+
+  // Set up Pusher real-time updates and polling
+  useEffect(() => {
+    if (!chatroomId || !key || !client) return;
+
+    // Subscribe to Pusher channel for this chatroom
+    if (pusherClient) {
+      const channel = pusherClient.subscribe(`chatroom-${chatroomId}`);
+      
+      channel.bind('new-message', () => {
+        // When new message event is received, refetch chats
+        console.log('New message event received, refetching chats...');
+        // Trigger refetch by updating previousChatId
+        client.getObject({
+          id: chatroomId,
+          options: { showContent: true },
+        }).then((chatroom) => {
+          if (chatroom.data?.content && "fields" in chatroom.data.content) {
+            const fields = chatroom.data.content.fields as {
+              last_chat_id: { fields?: { id: string } } | string | null;
+            };
+            let parsedLastChatId: string | null = null;
+            if (fields.last_chat_id === null) {
+              parsedLastChatId = null;
+            } else if (typeof fields.last_chat_id === "string") {
+              parsedLastChatId = fields.last_chat_id;
+            } else if (fields.last_chat_id && typeof fields.last_chat_id === "object" && "fields" in fields.last_chat_id) {
+              parsedLastChatId = fields.last_chat_id.fields?.id || null;
+            }
+            setPreviousChatId(parsedLastChatId);
+          }
+        });
+      });
+
+      // Cleanup on unmount
+      return () => {
+        channel.unbind_all();
+        channel.unsubscribe();
+      };
+    }
+
+    // Set up polling to check for new messages every 3 seconds
+    pollingIntervalRef.current = setInterval(async () => {
+      try {
+        const chatroom = await client.getObject({
+          id: chatroomId,
+          options: { showContent: true },
+        });
+
+        if (chatroom.data?.content && "fields" in chatroom.data.content) {
+          const fields = chatroom.data.content.fields as {
+            last_chat_id: { fields?: { id: string } } | string | null;
+          };
+          
+          let currentLastChatId: string | null = null;
+          if (fields.last_chat_id === null) {
+            currentLastChatId = null;
+          } else if (typeof fields.last_chat_id === "string") {
+            currentLastChatId = fields.last_chat_id;
+          } else if (fields.last_chat_id && typeof fields.last_chat_id === "object" && "fields" in fields.last_chat_id) {
+            currentLastChatId = fields.last_chat_id.fields?.id || null;
+          }
+
+          // If last_chat_id has changed, trigger refetch
+          if (currentLastChatId !== lastCheckedChatIdRef.current && currentLastChatId !== null) {
+            console.log('New message detected, updating...');
+            setPreviousChatId(currentLastChatId);
+            lastCheckedChatIdRef.current = currentLastChatId;
+          }
+        }
+      } catch (error) {
+        console.error('Error polling for new messages:', error);
+      }
+    }, 3000); // Poll every 3 seconds
+
+    // Cleanup polling on unmount
+    return () => {
+      if (pollingIntervalRef.current) {
+        clearInterval(pollingIntervalRef.current);
+        pollingIntervalRef.current = null;
+      }
+    };
+  }, [chatroomId, key, client]);
 
   if (!key) {
     return (
