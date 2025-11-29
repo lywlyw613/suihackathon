@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { getGoogleOAuthUrl, parseJWT } from "../lib/zklogin";
+import { completeZkLogin } from "../lib/zklogin-full";
 
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || "";
 
@@ -33,10 +34,21 @@ export function useZkLogin() {
           localStorage.setItem("zklogin_token", idToken);
           localStorage.setItem("zklogin_email", claims.email || "");
           
-          // TODO: Generate zkLogin address and proof
-          // This requires proving service and salt service
+          // Try to complete zkLogin flow
+          try {
+            const zkLoginResult = await completeZkLogin(idToken);
+            console.log("zkLogin result:", zkLoginResult);
+            
+            // Store zkLogin address
+            if (zkLoginResult.address) {
+              localStorage.setItem("zklogin_address", zkLoginResult.address);
+            }
+          } catch (zkError) {
+            console.warn("zkLogin proof generation failed (using OAuth only):", zkError);
+            // Continue with OAuth-only flow for hackathon demo
+          }
           
-          // For now, navigate to home
+          // Navigate to home
           navigate("/home");
         } catch (error) {
           console.error("Error parsing JWT:", error);
