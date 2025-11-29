@@ -452,12 +452,19 @@ export function ChatroomDetail() {
       // Create transaction
       const tx = new Transaction();
       
+      // For sponsored transactions, set sender BEFORE moveCall
+      // This is required for tx.build() to correctly parse arguments
+      if (useSponsoredTx && isSponsoredTransactionsEnabled() && account) {
+        tx.setSender(account.address);
+      }
+      
       // Build previous_chat_id argument - must match chatroom's last_chat_id exactly
       // Note: Move function expects Option<ID>, and ID is an alias for address
-      // Use "address" as the type since ID is just an alias for address
+      // Use tx.pure.option with "address" type (since ID is an alias for address)
       let previousChatIdArg;
       if (latestPreviousChatId) {
         // If chatroom has a last_chat_id, wrap it in Option<ID>
+        // Use "address" as the type since ID is an alias for address
         previousChatIdArg = tx.pure.option("address", latestPreviousChatId);
       } else {
         // If chatroom has no last_chat_id, pass None
@@ -474,7 +481,7 @@ export function ChatroomDetail() {
         arguments: [
           tx.object(chatroomId), // chatroom (shared object)
           tx.object(key.objectId), // key
-          previousChatIdArg, // previous_chat_id (must match chatroom's last_chat_id)
+          previousChatIdArg, // previous_chat_id (Option<ID>, use null for None)
           tx.pure.vector("u8", encryptedBytes), // encrypted_content
           tx.object("0x6"), // Clock object at address 0x6
         ],
@@ -486,9 +493,7 @@ export function ChatroomDetail() {
         if (sponsorApiUrl && account) {
           // Call backend API to sponsor the transaction
           try {
-            // IMPORTANT: Set sender AFTER moveCall but BEFORE build
-            // This ensures the transaction is properly constructed
-            tx.setSender(account.address);
+            // Sender is already set above, just build the transaction
             
             // Build transaction and serialize to bytes
             const txBytes = await tx.build({ client });

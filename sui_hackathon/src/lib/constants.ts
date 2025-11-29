@@ -1,5 +1,5 @@
 // Contract Package ID (deployed on devnet)
-export const PACKAGE_ID = "0x85000de160853d9a4938f91925b9ff0ea55c7e21211be7cf72c921a973525baf";
+export const PACKAGE_ID = "0x8bd361be6941d695fa754e623eba222287d55ba60c500530103dd92bd6abf1a6";
 
 // Module names
 export const MODULE_NAMES = {
