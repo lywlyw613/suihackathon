@@ -1,5 +1,5 @@
 import { useParams, useNavigate } from "react-router-dom";
-import { useCurrentAccount, useSuiClientQuery, useSignAndExecuteTransaction, useSuiClient } from "@mysten/dapp-kit";
+import { useCurrentAccount, useSuiClientQuery, useSignAndExecuteTransaction, useSuiClient, useSignTransaction } from "@mysten/dapp-kit";
 import { useState, useEffect, useRef } from "react";
 import { Transaction } from "@mysten/sui/transactions";
 import { PACKAGE_ID, MODULE_NAMES, FUNCTION_NAMES } from "../lib/constants";
@@ -22,6 +22,7 @@ export function ChatroomDetail() {
   const [previousChatId, setPreviousChatId] = useState<string | null>(null);
   const [useSponsoredTx, setUseSponsoredTx] = useState(false);
   const { mutate: signAndExecute } = useSignAndExecuteTransaction();
+  const { mutate: signTransaction } = useSignTransaction();
   const client = useSuiClient();
   const pollingIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const lastCheckedChatIdRef = useRef<string | null>(null);
@@ -459,9 +460,8 @@ export function ChatroomDetail() {
       // Create transaction
       const tx = new Transaction();
       
-      // For sponsored transactions, set sender BEFORE moveCall
-      // This is required for tx.build() to correctly parse arguments
-      if (useSponsoredTx && isSponsoredTransactionsEnabled() && account) {
+      // Set sender (required for all transactions)
+      if (account) {
         tx.setSender(account.address);
       }
       
@@ -498,37 +498,74 @@ export function ChatroomDetail() {
       if (useSponsoredTx && isSponsoredTransactionsEnabled()) {
         const sponsorApiUrl = getSponsorApiUrl();
         if (sponsorApiUrl && account) {
-          // Call backend API to sponsor the transaction
+          // For sponsored transactions, we need:
+          // 1. User signs the transaction first
+          // 2. Send signed transaction to backend
+          // 3. Backend adds sponsor signature and executes
           try {
-            // Sender is already set above, just build the transaction
-            
-            // Build transaction and serialize to bytes
-            const txBytes = await tx.build({ client });
-            // Convert Uint8Array to base64 for JSON transmission
-            const txBytesBase64 = btoa(String.fromCharCode(...txBytes));
-            
-            const response = await fetch(sponsorApiUrl, {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                transaction: txBytesBase64,
-                sender: account.address,
-              }),
-            });
-            
-            if (response.ok) {
-              const result = await response.json();
-              console.log("Sponsored transaction sent:", result);
-              setMessage("");
-              // Polling will pick up the new message
-              return;
-            } else {
-              const errorText = await response.text();
-              console.error("Failed to sponsor transaction:", errorText);
-              // Fall back to normal transaction
-            }
+            // User signs the transaction
+            signTransaction(
+              {
+                transaction: tx,
+                account: account,
+              },
+              {
+                onSuccess: async (signedTx) => {
+                  try {
+                    // signedTx.bytes is a string (base64 encoded), signature is also a string
+                    // Use bytes directly as it's already base64
+                    const txBytesBase64 = signedTx.bytes;
+                    // Signature is already a string (SerializedSignature)
+                    const signatureBase64 = signedTx.signature;
+                    
+                    const response = await fetch(sponsorApiUrl, {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({
+                        transaction: txBytesBase64,
+                        signature: signatureBase64,
+                        sender: account.address,
+                      }),
+                    });
+                    
+                    if (response.ok) {
+                      const result = await response.json();
+                      console.log("Sponsored transaction sent:", result);
+                      setMessage("");
+                      // Trigger Pusher event
+                      if (pusherClient && chatroomId) {
+                        const channelName = `chatroom-${chatroomId}`;
+                        const channel = pusherClient.channel(channelName);
+                        if (channel && channel.subscribed) {
+                          channel.trigger('client-new-message', {
+                            chatroomId,
+                            timestamp: Date.now(),
+                          });
+                        }
+                      }
+                      setIsSending(false);
+                    } else {
+                      const errorText = await response.text();
+                      console.error("Failed to sponsor transaction:", errorText);
+                      alert("Failed to sponsor transaction. Please try again.");
+                      setIsSending(false);
+                    }
+                  } catch (error) {
+                    console.error("Error sending sponsored transaction:", error);
+                    alert("Failed to sponsor transaction. Please try again.");
+                    setIsSending(false);
+                  }
+                },
+                onError: (error: Error) => {
+                  console.error("Error signing transaction:", error);
+                  alert("Failed to sign transaction. Please try again.");
+                  setIsSending(false);
+                },
+              }
+            );
+            return; // Don't execute normal transaction
           } catch (error) {
-            console.error("Error sponsoring transaction:", error);
+            console.error("Error preparing sponsored transaction:", error);
             // Fall back to normal transaction
           }
         }
