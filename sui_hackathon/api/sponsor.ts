@@ -55,39 +55,15 @@ export default async function handler(req: any, res: any) {
         message: error.message 
       });
     }
-    const sponsorAddress = sponsorKeypair.toSuiAddress();
 
     // Deserialize the transaction (txBytes is base64 encoded)
-    // This is the transaction that the user signed (without gas payment)
+    // This transaction already has gas payment set (from frontend)
     const txBytesBuffer = Buffer.from(txBytes, 'base64');
     const tx = Transaction.from(txBytesBuffer);
 
-    // Get sponsor coins for gas payment
-    const sponsorCoins = await client.getCoins({
-      owner: sponsorAddress,
-      coinType: '0x2::sui::SUI',
-    });
-
-    if (sponsorCoins.data.length === 0) {
-      return res.status(500).json({ 
-        error: 'Sponsor has no SUI coins to pay for gas',
-        sponsorAddress 
-      });
-    }
-
-    // Use the first coin for gas
-    const gasCoin = sponsorCoins.data[0];
-    tx.setGasPayment([{
-      objectId: gasCoin.coinObjectId,
-      version: gasCoin.version,
-      digest: gasCoin.digest,
-    }]);
-
-    // Set gas owner to sponsor
-    tx.setGasOwner(sponsorAddress);
-
-    // Rebuild transaction with sponsor gas payment
-    const txBytesWithSponsor = await tx.build({ client });
+    // The transaction already has gas payment set by the frontend,
+    // so we just need to sign it with sponsor's key and execute
+    const txBytesToExecute = await tx.build({ client });
 
     // Sign the transaction with sponsor's key (for gas payment)
     const sponsorSignedTx = await tx.sign({
@@ -95,19 +71,11 @@ export default async function handler(req: any, res: any) {
       signer: sponsorKeypair,
     });
 
-    // User signature is already a SerializedSignature string from the frontend
-    // For sponsored transactions in Sui:
-    // - The transaction bytes WITH gas payment are used
-    // - We need both user signature and sponsor signature
-    // - The signatures are combined into a multi-sig format
-    // 
-    // The user signature was created for the original transaction bytes (without gas payment),
-    // but we're executing the transaction with gas payment. However, in Sui, the signature
-    // validation should work because the core transaction data (moveCall, arguments) remains the same.
-    //
-    // Let's use the transaction bytes with gas payment and both signatures:
+    // User signature is for the transaction WITH gas payment (set by frontend)
+    // Sponsor signature is for the same transaction
+    // Both signatures are needed for sponsored transactions
     const result = await client.executeTransactionBlock({
-      transactionBlock: txBytesWithSponsor, // Transaction with gas payment
+      transactionBlock: txBytesToExecute, // Transaction with gas payment (already set)
       signature: [
         userSignature, // User signature (sender) - SerializedSignature string
         sponsorSignedTx.signature, // Sponsor signature (gas payer) - SerializedSignature string

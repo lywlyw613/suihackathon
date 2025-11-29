@@ -499,11 +499,38 @@ export function ChatroomDetail() {
         const sponsorApiUrl = getSponsorApiUrl();
         if (sponsorApiUrl && account) {
           // For sponsored transactions, we need:
-          // 1. User signs the transaction first
-          // 2. Send signed transaction to backend
-          // 3. Backend adds sponsor signature and executes
+          // 1. Get gas payment info from backend
+          // 2. Set gas payment in transaction
+          // 3. User signs the transaction (with gas payment)
+          // 4. Send signed transaction to backend
+          // 5. Backend adds sponsor signature and executes
           try {
-            // User signs the transaction
+            // First, get gas payment info from backend
+            // Use /api/sponsor-gas-info endpoint
+            const gasInfoUrl = sponsorApiUrl.replace('/sponsor', '/sponsor-gas-info');
+            const gasInfoResponse = await fetch(gasInfoUrl, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                sender: account.address,
+              }),
+            });
+            
+            if (!gasInfoResponse.ok) {
+              throw new Error("Failed to get gas payment info");
+            }
+            
+            const gasInfo = await gasInfoResponse.json();
+            
+            // Set gas payment in transaction BEFORE user signs
+            tx.setGasPayment([{
+              objectId: gasInfo.gasCoin.objectId,
+              version: gasInfo.gasCoin.version,
+              digest: gasInfo.gasCoin.digest,
+            }]);
+            tx.setGasOwner(gasInfo.sponsorAddress);
+            
+            // Now user signs the transaction (which includes gas payment)
             signTransaction(
               {
                 transaction: tx,
@@ -513,9 +540,7 @@ export function ChatroomDetail() {
                 onSuccess: async (signedTx) => {
                   try {
                     // signedTx.bytes is a string (base64 encoded), signature is also a string
-                    // Use bytes directly as it's already base64
                     const txBytesBase64 = signedTx.bytes;
-                    // Signature is already a string (SerializedSignature)
                     const signatureBase64 = signedTx.signature;
                     
                     const response = await fetch(sponsorApiUrl, {
