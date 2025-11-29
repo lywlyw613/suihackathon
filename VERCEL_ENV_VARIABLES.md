@@ -5,11 +5,11 @@
 ### 前端环境变量（VITE_ 开头）
 
 1. **VITE_PUSHER_KEY**
-   - 值：你的 Pusher Key（从 https://dashboard.pusher.com/ 获取）
+   - 值：`4b0c4dca18cc8870e4b3`
    - 说明：用于实时聊天更新
 
 2. **VITE_PUSHER_CLUSTER**
-   - 值：`us2`（或你的 Pusher cluster）
+   - 值：`ap3`
    - 说明：Pusher 集群
 
 3. **VITE_SPONSOR_API_URL**
@@ -51,8 +51,8 @@
 ## 快速复制清单
 
 ```
-VITE_PUSHER_KEY=你的_pusher_key
-VITE_PUSHER_CLUSTER=us2
+VITE_PUSHER_KEY=4b0c4dca18cc8870e4b3
+VITE_PUSHER_CLUSTER=ap3
 VITE_SPONSOR_API_URL=https://suihackathon-phi.vercel.app/api/sponsor
 VITE_GOOGLE_CLIENT_ID=3395270498-ojjjo90nf63pe067c266tdu13qj4hq1d.apps.googleusercontent.com
 VITE_PROVING_SERVICE_URL=https://prover.sui.io/v1
