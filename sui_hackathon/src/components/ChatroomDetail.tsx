@@ -161,7 +161,7 @@ export function ChatroomDetail() {
             const fields = chatObj.data.content.fields as {
               chatroom_id: string | { fields?: { id: string } };
               sender: string;
-              timestamp: string;
+              timestamp: string | number;
               previous_chat_id: { fields?: { id: string } } | string | null;
               encrypted_content: string | number[];
             };
@@ -251,11 +251,29 @@ export function ChatroomDetail() {
             console.log("Parsed chatroom_id:", parsedChatroomId);
             console.log("Parsed previous_chat_id:", parsedPreviousChatId);
 
+            // Parse timestamp - handle both string and number formats
+            // Move contract uses epoch_timestamp_ms, so it should be milliseconds
+            let parsedTimestamp: number;
+            if (typeof fields.timestamp === "string") {
+              parsedTimestamp = Number(fields.timestamp);
+            } else {
+              parsedTimestamp = fields.timestamp;
+            }
+            
+            // If timestamp seems too small (likely in seconds instead of milliseconds), convert it
+            // Timestamps after 2001-01-01 in milliseconds are > 978307200000
+            if (parsedTimestamp < 978307200000) {
+              // Likely in seconds, convert to milliseconds
+              parsedTimestamp = parsedTimestamp * 1000;
+            }
+            
+            console.log("Raw timestamp:", fields.timestamp, "Parsed:", parsedTimestamp, "Date:", new Date(parsedTimestamp));
+
             chatList.push({
               objectId: currentChatId,
               chatroomId: parsedChatroomId,
               sender: fields.sender,
-              timestamp: Number(fields.timestamp),
+              timestamp: parsedTimestamp,
               previousChatId: parsedPreviousChatId,
               encryptedContent: encryptedBytes,
               decryptedContent,
