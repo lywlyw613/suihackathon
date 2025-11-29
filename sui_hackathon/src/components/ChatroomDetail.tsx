@@ -23,7 +23,7 @@ export function ChatroomDetail() {
   const [useSponsoredTx, setUseSponsoredTx] = useState(false);
   const { mutate: signAndExecute } = useSignAndExecuteTransaction();
   const client = useSuiClient();
-  const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const pollingIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const lastCheckedChatIdRef = useRef<string | null>(null);
 
   // Fetch user's Key for this chatroom
@@ -528,7 +528,7 @@ export function ChatroomDetail() {
             setMessage("");
             // Trigger Pusher event to notify other clients (if Pusher is available)
             if (pusherClient && chatroomId) {
-              const channel = pusherClient.getChannel(`chatroom-${chatroomId}`);
+              const channel = pusherClient.channel(`chatroom-${chatroomId}`);
               if (channel) {
                 channel.trigger('client-new-message', {
                   chatroomId,
