@@ -322,8 +322,8 @@ export function ChatroomDetail() {
         console.log('Pusher subscription succeeded for', channelName);
       });
 
-      // Listen for new message events
-      channel.bind('new-message', () => {
+      // Listen for new message events (client events must start with 'client-')
+      channel.bind('client-new-message', () => {
         // When new message event is received, refetch chats
         console.log('New message event received, refetching chats...');
         // Trigger refetch by updating previousChatId
@@ -548,12 +548,17 @@ export function ChatroomDetail() {
               const channelName = `chatroom-${chatroomId}`;
               const channel = pusherClient.channel(channelName);
               if (channel && channel.subscribed) {
-                // Use client events for real-time updates
-                channel.trigger('client-new-message', {
-                  chatroomId,
-                  timestamp: Date.now(),
-                });
-                console.log('Pusher event triggered:', channelName);
+                // Use client events for real-time updates (must start with 'client-')
+                try {
+                  channel.trigger('client-new-message', {
+                    chatroomId,
+                    timestamp: Date.now(),
+                  });
+                  console.log('Pusher event triggered:', channelName);
+                } catch (error) {
+                  console.error('Error triggering Pusher event:', error);
+                  // Client events might not be enabled, fall back to polling
+                }
               } else {
                 console.warn('Pusher channel not subscribed:', channelName);
               }
