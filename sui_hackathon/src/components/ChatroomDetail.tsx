@@ -370,7 +370,7 @@ export function ChatroomDetail() {
           // Wait for subscription to be successful
           channel.bind('pusher:subscription_succeeded', () => {
             console.log(`[Pusher] ✅ Subscribed to ${channelName}`);
-            console.log(`[Pusher] Channel state: ${channel.state}, subscribed: ${channel.subscribed}`);
+            console.log(`[Pusher] Channel subscribed: ${channel.subscribed}`);
           });
 
           // Listen for new message events (client events must start with 'client-')
@@ -748,11 +748,10 @@ export function ChatroomDetail() {
               if (pusherChannelRef.current) {
                 try {
                   const channel = pusherChannelRef.current;
-                  const channelState = channel.state;
                   const isSubscribed = channel.subscribed;
                   
                   console.log('[Pusher] 📤 Attempting to trigger event (normal tx)...');
-                  console.log('[Pusher] Channel state:', channelState, 'Subscribed:', isSubscribed);
+                  console.log('[Pusher] Channel subscribed:', isSubscribed);
                   
                   // Try to trigger even if subscription status is unclear
                   // Pusher will handle it gracefully
