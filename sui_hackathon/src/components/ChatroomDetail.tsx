@@ -631,7 +631,6 @@ export function ChatroomDetail() {
           tx.object(key.objectId), // key
           previousChatIdArg, // previous_chat_id (Option<ID>, use null for None)
           tx.pure.vector("u8", encryptedBytes), // encrypted_content
-          tx.object("0x6"), // Clock object at address 0x6
         ],
       });
 

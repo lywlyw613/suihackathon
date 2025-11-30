@@ -6,7 +6,6 @@ use sui_chat::key::{Self, Key};
 use sui::object::{Self, ID};
 use sui::tx_context::{Self, TxContext};
 use sui::transfer;
-use sui::clock::{Self, Clock};
 use std::option;
 use std::vector;
 
@@ -23,7 +22,6 @@ const SYSTEM_MESSAGE: vector<u8> = b"This chat is encrypted and recorded on Sui 
 public fun create_chatroom(
     member_addresses: vector<address>,
     key: vector<u8>, // 32 bytes for AES-256-GCM
-    clock: &Clock,
     ctx: &mut TxContext,
 ) {
     // Validate key length (32 bytes for AES-256)
@@ -40,13 +38,11 @@ public fun create_chatroom(
     
     // Create first system chat (unencrypted)
     // Use creator as sender for system message (or could use @0x0 for system)
-    // Note: Clock is passed as parameter
     let first_chat = chat::create(
         chatroom_id,
         creator, // Use creator as sender for system message
         option::none(), // No previous chat
         SYSTEM_MESSAGE, // Unencrypted system message
-        clock,
         ctx,
     );
     let first_chat_id = chat::id(&first_chat);
@@ -79,7 +75,6 @@ public fun send_message(
     key: &Key,
     previous_chat_id: option::Option<ID>,
     encrypted_content: vector<u8>,
-    clock: &Clock,
     ctx: &mut TxContext,
 ) {
     let chatroom_id = object::id(chatroom);
@@ -105,7 +100,6 @@ public fun send_message(
         sender,
         previous_chat_id,
         encrypted_content,
-        clock,
         ctx,
     );
     let new_chat_id = chat::id(&new_chat);

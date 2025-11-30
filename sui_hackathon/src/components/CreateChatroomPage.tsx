@@ -56,7 +56,6 @@ export function CreateChatroomPage() {
       arguments: [
         tx.pure.vector("address", memberAddresses), // vector<address>
         tx.pure.vector("u8", Array.from(key)), // vector<u8> (32 bytes)
-        tx.object("0x6"), // Clock object at address 0x6
       ],
     });
 
