@@ -219,12 +219,20 @@ export function ProfilePage() {
                 position: "absolute",
                 bottom: "var(--x-spacing-md)",
                 right: "var(--x-spacing-md)",
+                zIndex: 20,
               }}
             >
               <Button
-                onClick={() => setIsEditModalOpen(true)}
+                onClick={() => {
+                  console.log("Edit Profile clicked");
+                  setIsEditModalOpen(true);
+                }}
                 className="x-button-secondary"
-                style={{ fontWeight: 700 }}
+                style={{ 
+                  fontWeight: 700,
+                  cursor: "pointer",
+                  pointerEvents: "auto",
+                }}
               >
                 Edit Profile
               </Button>
@@ -387,9 +395,9 @@ export function ProfilePage() {
       </Container>
 
       {/* Edit Profile Modal */}
-      {isEditModalOpen && profile && (
+      {isEditModalOpen && (
         <EditProfileModal
-          profile={profile}
+          profile={profile || { address: address || "", chatroomCount: 0, friends: [] }}
           onClose={() => setIsEditModalOpen(false)}
           onSave={handleSaveProfile}
         />

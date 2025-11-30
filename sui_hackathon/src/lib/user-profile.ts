@@ -27,13 +27,28 @@ export async function getUserProfile(address: string): Promise<UserProfile | nul
   try {
     const response = await fetch(`${API_BASE_URL}/api/profile?address=${encodeURIComponent(address)}`);
     if (!response.ok) {
-      throw new Error('Failed to fetch profile');
+      const errorText = await response.text();
+      console.error('Failed to fetch profile:', response.status, errorText);
+      // Return default profile if not found (404) or server error
+      if (response.status === 404 || response.status === 500) {
+        return {
+          address,
+          chatroomCount: 0,
+          friends: [],
+        };
+      }
+      throw new Error(`Failed to fetch profile: ${response.status}`);
     }
     const profile = await response.json();
     return profile;
   } catch (error) {
     console.error('Error getting user profile:', error);
-    return null;
+    // Return default profile on error
+    return {
+      address,
+      chatroomCount: 0,
+      friends: [],
+    };
   }
 }
 
@@ -81,7 +96,10 @@ export async function getFriends(address: string): Promise<Array<{ address: stri
   try {
     const response = await fetch(`${API_BASE_URL}/api/friends?address=${encodeURIComponent(address)}`);
     if (!response.ok) {
-      throw new Error('Failed to fetch friends');
+      const errorText = await response.text();
+      console.error('Failed to fetch friends:', response.status, errorText);
+      // Return empty array on error
+      return [];
     }
     const data = await response.json();
     return data.friends || [];

@@ -15,7 +15,15 @@ let cachedDb: any = null;
 
 async function connectToDatabase() {
   if (cachedClient && cachedDb) {
-    return { client: cachedClient, db: cachedDb };
+    // Test if connection is still alive
+    try {
+      await cachedClient.db('admin').command({ ping: 1 });
+      return { client: cachedClient, db: cachedDb };
+    } catch (error) {
+      // Connection is dead, reset cache
+      cachedClient = null;
+      cachedDb = null;
+    }
   }
 
   const uri = process.env.MONGODB_URI;
@@ -23,7 +31,11 @@ async function connectToDatabase() {
     throw new Error('MONGODB_URI environment variable is not set');
   }
 
-  const client = new MongoClient(uri);
+  const client = new MongoClient(uri, {
+    maxPoolSize: 10,
+    serverSelectionTimeoutMS: 5000,
+  });
+  
   await client.connect();
   const db = client.db('sui_chat');
 

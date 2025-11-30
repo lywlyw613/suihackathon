@@ -6,16 +6,39 @@
 
 import { MongoClient } from 'mongodb';
 
-// Reuse MongoDB connection
+// MongoDB connection (cached) - same as profile.ts
+let cachedClient: MongoClient | null = null;
+let cachedDb: any = null;
+
 async function connectToDatabase() {
+  if (cachedClient && cachedDb) {
+    // Test if connection is still alive
+    try {
+      await cachedClient.db('admin').command({ ping: 1 });
+      return { client: cachedClient, db: cachedDb };
+    } catch (error) {
+      // Connection is dead, reset cache
+      cachedClient = null;
+      cachedDb = null;
+    }
+  }
+
   const uri = process.env.MONGODB_URI;
   if (!uri) {
     throw new Error('MONGODB_URI environment variable is not set');
   }
 
-  const client = new MongoClient(uri);
+  const client = new MongoClient(uri, {
+    maxPoolSize: 10,
+    serverSelectionTimeoutMS: 5000,
+  });
+  
   await client.connect();
   const db = client.db('sui_chat');
+
+  cachedClient = client;
+  cachedDb = db;
+
   return { client, db };
 }
 
@@ -50,7 +73,7 @@ export default async function handler(req: any, res: any) {
         .toArray();
 
       return res.status(200).json({
-        friends: friends.map((f) => ({
+        friends: friends.map((f: any) => ({
           address: f.address,
           name: f.name,
           avatarUrl: f.avatarUrl,
