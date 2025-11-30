@@ -1,5 +1,5 @@
 import { useState, useRef } from "react";
-import { Box, Flex, Text, Button, TextField, Dialog, Spinner } from "@radix-ui/themes";
+import { Box, Flex, Text, Button, Dialog, Spinner } from "@radix-ui/themes";
 import { UserProfile } from "../lib/user-profile";
 import { uploadImageToWalrus, validateImageFile, createImagePreview } from "../lib/walrus";
 import { useCurrentAccount } from "@mysten/dapp-kit";
@@ -77,12 +77,21 @@ export function EditProfileModal({ profile, onClose, onSave }: EditProfileModalP
   };
 
   const handleSave = async () => {
-    if (!account?.address) return;
+    if (!account?.address) {
+      alert("Please connect your wallet first");
+      return;
+    }
+
+    // Security check: ensure we're saving for the current account
+    if (profile.address !== account.address) {
+      alert("You can only edit your own profile");
+      return;
+    }
 
     setIsSaving(true);
     try {
       await onSave({
-        address: account.address,
+        address: account.address, // Always use current account address
         name: name.trim() || undefined,
         bio: bio.trim() || undefined,
         avatarUrl: avatarUrl || undefined,
@@ -190,11 +199,19 @@ export function EditProfileModal({ profile, onClose, onSave }: EditProfileModalP
             <Text size="2" style={{ color: "var(--x-text-secondary)", display: "block", marginBottom: "var(--x-spacing-sm)" }}>
               Name
             </Text>
-            <TextField.Root
+            <input
+              type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="Your name"
               className="x-input"
+              style={{
+                padding: "12px 16px",
+                minHeight: "44px",
+                lineHeight: "1.5",
+                fontSize: "15px",
+                boxSizing: "border-box",
+              }}
             />
           </Box>
 

@@ -101,6 +101,11 @@ export default async function handler(req: any, res: any) {
         return res.status(400).json({ error: 'Address is required' });
       }
 
+      // Security: Only allow users to update their own profile
+      // In production, you should verify the wallet signature
+      // For now, we rely on frontend check (isOwnProfile)
+      // Backend should also verify, but for hackathon demo we'll trust the frontend
+      
       const now = new Date();
       const updateData = {
         ...profile,

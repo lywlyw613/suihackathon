@@ -54,11 +54,22 @@ export async function getUserProfile(address: string): Promise<UserProfile | nul
 
 /**
  * Save user profile to MongoDB
+ * 
+ * @param profile - Profile data to save
+ * @param currentAddress - Current logged-in wallet address (for security check)
  */
-export async function saveUserProfile(profile: Partial<UserProfile>): Promise<boolean> {
+export async function saveUserProfile(
+  profile: Partial<UserProfile>,
+  currentAddress?: string
+): Promise<boolean> {
   try {
     if (!profile.address) {
       throw new Error('Address is required');
+    }
+
+    // Security check: ensure user can only save their own profile
+    if (currentAddress && profile.address !== currentAddress) {
+      throw new Error('You can only save your own profile');
     }
 
     const response = await fetch(`${API_BASE_URL}/api/profile`, {
@@ -70,13 +81,14 @@ export async function saveUserProfile(profile: Partial<UserProfile>): Promise<bo
     });
 
     if (!response.ok) {
-      throw new Error('Failed to save profile');
+      const errorText = await response.text();
+      throw new Error(`Failed to save profile: ${errorText}`);
     }
 
     return true;
   } catch (error) {
     console.error('Error saving user profile:', error);
-    return false;
+    throw error; // Re-throw to let caller handle
   }
 }
 

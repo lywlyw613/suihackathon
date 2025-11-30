@@ -139,9 +139,25 @@ export function ProfilePage() {
   }, [chatroomCount]);
 
   const handleSaveProfile = async (updatedProfile: Partial<UserProfile>) => {
-    await saveUserProfile(updatedProfile);
-    const newProfile = await getUserProfile(address!);
-    setProfile(newProfile);
+    // Security: ensure we're saving for the current account
+    if (!currentAccount?.address) {
+      alert("Please connect your wallet first");
+      return;
+    }
+    
+    if (updatedProfile.address !== currentAccount.address) {
+      alert("You can only edit your own profile");
+      return;
+    }
+    
+    try {
+      await saveUserProfile(updatedProfile, currentAccount.address);
+      const newProfile = await getUserProfile(address!);
+      setProfile(newProfile);
+    } catch (error: any) {
+      console.error("Error saving profile:", error);
+      alert(error.message || "Failed to save profile. Please try again.");
+    }
   };
 
   const [avatarError, setAvatarError] = useState(false);
