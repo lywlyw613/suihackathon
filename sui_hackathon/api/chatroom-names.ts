@@ -22,10 +22,20 @@ async function connectToDatabase() {
   }
 
   const client = new MongoClient(uri, {
-    connectTimeoutMS: 5000,
-    serverSelectionTimeoutMS: 5000,
+    connectTimeoutMS: 10000,
+    serverSelectionTimeoutMS: 10000,
+    maxPoolSize: 10,
+    minPoolSize: 1,
+    tls: true,
+    tlsAllowInvalidCertificates: false,
   });
-  await client.connect();
+  
+  try {
+    await client.connect();
+  } catch (error: any) {
+    console.error('MongoDB connection error:', error);
+    throw new Error(`Failed to connect to MongoDB: ${error.message}`);
+  }
   const db = client.db('sui_chat');
 
   cachedClient = client;
@@ -155,9 +165,18 @@ export default async function handler(req: any, res: any) {
     return res.status(405).json({ error: 'Method not allowed' });
   } catch (error: any) {
     console.error('Chatroom names API error:', error);
+    
+    // Handle MongoDB connection errors more gracefully
+    if (error.message?.includes('SSL') || error.message?.includes('TLS') || error.message?.includes('MongoDB')) {
+      return res.status(503).json({
+        error: 'Database connection error',
+        message: 'Unable to connect to database. Please try again later.',
+      });
+    }
+    
     return res.status(500).json({
       error: 'Internal server error',
-      message: error.message,
+      message: error.message || 'An unexpected error occurred',
     });
   }
 }

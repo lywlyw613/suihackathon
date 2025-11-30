@@ -27,10 +27,19 @@ export async function getUserProfile(address: string): Promise<UserProfile | nul
   try {
     const response = await fetch(`${API_BASE_URL}/api/profile?address=${encodeURIComponent(address)}`);
     if (!response.ok) {
+      // Don't log errors for 503 (service unavailable) or 500 (server errors) - these are expected
+      if (response.status === 503 || response.status === 500) {
+        // Return default profile on database connection errors
+        return {
+          address,
+          chatroomCount: 0,
+          friends: [],
+        };
+      }
       const errorText = await response.text();
       console.error('Failed to fetch profile:', response.status, errorText);
-      // Return default profile if not found (404) or server error
-      if (response.status === 404 || response.status === 500) {
+      // Return default profile if not found (404)
+      if (response.status === 404) {
         return {
           address,
           chatroomCount: 0,
@@ -42,8 +51,7 @@ export async function getUserProfile(address: string): Promise<UserProfile | nul
     const profile = await response.json();
     return profile;
   } catch (error) {
-    console.error('Error getting user profile:', error);
-    // Return default profile on error
+    // Silently return default profile on network errors
     return {
       address,
       chatroomCount: 0,
@@ -108,15 +116,18 @@ export async function getFriends(address: string): Promise<Array<{ address: stri
   try {
     const response = await fetch(`${API_BASE_URL}/api/friends?address=${encodeURIComponent(address)}`);
     if (!response.ok) {
-      const errorText = await response.text();
-      console.error('Failed to fetch friends:', response.status, errorText);
+      // Don't log errors for 503 or 500 - these are expected database connection issues
+      if (response.status !== 503 && response.status !== 500) {
+        const errorText = await response.text();
+        console.error('Failed to fetch friends:', response.status, errorText);
+      }
       // Return empty array on error
       return [];
     }
     const data = await response.json();
     return data.friends || [];
   } catch (error) {
-    console.error('Error getting friends:', error);
+    // Silently return empty array on network errors
     return [];
   }
 }

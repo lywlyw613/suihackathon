@@ -51,13 +51,17 @@ export async function getAllChatroomNames(
     );
     
     if (!response.ok) {
+      // Don't log errors for 503 or 500 - these are expected database connection issues
+      if (response.status !== 503 && response.status !== 500) {
+        console.error('Failed to fetch chatroom names:', response.status);
+      }
       return {};
     }
     
     const data = await response.json();
     return data.names || {};
   } catch (error) {
-    console.error('Error getting all chatroom names:', error);
+    // Silently return empty object on network errors
     return {};
   }
 }
