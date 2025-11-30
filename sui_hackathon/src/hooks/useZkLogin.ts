@@ -1,8 +1,5 @@
-import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
-import { getGoogleOAuthUrl, parseJWT } from "../lib/zklogin";
-import { completeZkLogin } from "../lib/zklogin-full";
-import { saveZkLoginAccount, clearZkLoginAccount, getZkLoginAccount, ZkLoginAccount } from "../lib/zklogin-account";
+import { useState } from "react";
+import { getGoogleOAuthUrl } from "../lib/zklogin";
 
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || "";
 
@@ -14,13 +11,10 @@ const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || "";
  * 2. Salt service (for generating unique salts)
  * 
  * For hackathon, this is a simplified version that handles OAuth flow.
+ * OAuth callback is handled by ZkLoginCallback component in App.tsx
  */
 export function useZkLogin() {
   const [isLoading, setIsLoading] = useState(false);
-  const navigate = useNavigate();
-
-  // Note: OAuth callback is now handled by ZkLoginCallback component in App.tsx
-  // This hook only handles the initial redirect to Google OAuth
 
   const handleGoogleLogin = () => {
     if (!GOOGLE_CLIENT_ID) {
