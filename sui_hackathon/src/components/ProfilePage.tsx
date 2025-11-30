@@ -55,13 +55,21 @@ export function ProfilePage() {
         const friendsList = await getFriends(address);
         setFriends(friendsList);
         setFriendsCount(friendsList.length);
+        
+        // Check if current user is already a friend
+        if (currentAccount?.address) {
+          const isCurrentUserFriend = friendsList.some(
+            (f: any) => f.address === currentAccount.address
+          );
+          setIsFriend(isCurrentUserFriend);
+        }
       } catch (error) {
         console.error("Error loading friends:", error);
       }
     };
 
     loadFriends();
-  }, [address]);
+  }, [address, currentAccount?.address]);
 
   // Fetch profile user's Key objects (chatrooms)
   const { data: ownedObjects, isLoading: isLoadingChatrooms } = useSuiClientQuery(
@@ -295,12 +303,25 @@ export function ProfilePage() {
                   if (!currentAccount?.address || !address) return;
                   setIsAddingFriend(true);
                   try {
-                    await addFriend(currentAccount.address, address);
-                    setIsFriend(true);
-                    alert("Friend added successfully!");
-                  } catch (error) {
+                    const success = await addFriend(currentAccount.address, address);
+                    if (success) {
+                      setIsFriend(true);
+                      // Refresh friends list
+                      try {
+                        const friendsList = await getFriends(address);
+                        setFriends(friendsList);
+                        setFriendsCount(friendsList.length);
+                      } catch (error) {
+                        console.error("Error refreshing friends list:", error);
+                      }
+                      alert("Friend added successfully!");
+                    } else {
+                      alert("Failed to add friend. Please try again.");
+                    }
+                  } catch (error: any) {
                     console.error("Error adding friend:", error);
-                    alert("Failed to add friend. Please try again.");
+                    const errorMessage = error?.message || "Failed to add friend. Please try again.";
+                    alert(errorMessage);
                   } finally {
                     setIsAddingFriend(false);
                   }

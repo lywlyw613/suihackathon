@@ -146,13 +146,22 @@ export async function addFriend(address: string, friendAddress: string): Promise
     });
 
     if (!response.ok) {
-      throw new Error('Failed to add friend');
+      const errorText = await response.text();
+      let errorMessage = 'Failed to add friend';
+      try {
+        const errorData = JSON.parse(errorText);
+        errorMessage = errorData.error || errorData.message || errorMessage;
+      } catch {
+        errorMessage = errorText || errorMessage;
+      }
+      throw new Error(errorMessage);
     }
 
-    return true;
+    const data = await response.json();
+    return data.success === true;
   } catch (error) {
     console.error('Error adding friend:', error);
-    return false;
+    throw error; // Re-throw to let caller handle
   }
 }
 
