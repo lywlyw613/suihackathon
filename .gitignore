@@ -32,4 +32,5 @@ Thumbs.db
 frontend_example/
 
 # Unused documentation files
+MOVE_CODE_EXPLANATION.md
 frontend_example/**/*.md
