@@ -769,12 +769,60 @@ export function ChatroomDetail() {
           account: account, // Explicitly pass the account to ensure it matches
         },
         {
-          onSuccess: (result) => {
+          onSuccess: async (result) => {
             console.log("Message sent:", result);
             setMessage("");
-            // Trigger Pusher event after transaction is confirmed
-            // Wait a bit for transaction to be processed
-            setTimeout(() => {
+            
+            // Wait for transaction to be confirmed on-chain before triggering Pusher event
+            // This ensures the data is available when other clients receive the event
+            const waitForConfirmation = async () => {
+              if (!chatroomId) return;
+              
+              const previousLastChatId = lastCheckedChatIdRef.current;
+              console.log('[Pusher] ⏳ Waiting for transaction confirmation...');
+              
+              // Wait for transaction to be processed (Sui typically takes 2-3 seconds)
+              await new Promise(resolve => setTimeout(resolve, 2000));
+              
+              // Verify the transaction is on-chain by checking the chatroom
+              let retries = 0;
+              const maxRetries = 5;
+              
+              while (retries < maxRetries) {
+                try {
+                  const chatroom = await client.getObject({
+                    id: chatroomId,
+                    options: { showContent: true },
+                  });
+                  
+                  // Check if last_chat_id has been updated (indicating new message is on-chain)
+                  if (chatroom.data?.content && "fields" in chatroom.data.content) {
+                    const fields = chatroom.data.content.fields as {
+                      last_chat_id: { fields?: { id: string } } | string | null;
+                    };
+                    const currentLastChatId = typeof fields.last_chat_id === "string" 
+                      ? fields.last_chat_id 
+                      : fields.last_chat_id?.fields?.id || null;
+                    
+                    // If last_chat_id has changed from what we last checked, transaction is confirmed
+                    if (currentLastChatId && currentLastChatId !== previousLastChatId) {
+                      console.log('[Pusher] ✅ Transaction confirmed on-chain, triggering event');
+                      break;
+                    }
+                  }
+                  
+                  // Wait a bit more and retry
+                  await new Promise(resolve => setTimeout(resolve, 1000));
+                  retries++;
+                  console.log(`[Pusher] ⏳ Still waiting for confirmation... (${retries}/${maxRetries})`);
+                } catch (error) {
+                  console.warn('[Pusher] Error checking transaction status, retrying...', error);
+                  await new Promise(resolve => setTimeout(resolve, 1000));
+                  retries++;
+                }
+              }
+              
+              // Now trigger Pusher event
               if (pusherChannelRef.current) {
                 try {
                   const channel = pusherChannelRef.current;
@@ -783,37 +831,30 @@ export function ChatroomDetail() {
                   console.log('[Pusher] 📤 Attempting to trigger event (normal tx)...');
                   console.log('[Pusher] Channel subscribed:', isSubscribed);
                   
-                  // Try to trigger even if subscription status is unclear
-                  // Pusher will handle it gracefully
                   const eventData = {
                     chatroomId,
                     timestamp: Date.now(),
                     sender: account.address,
                   };
                   
-                  const result = channel.trigger('client-new-message', eventData);
+                  const triggerResult = channel.trigger('client-new-message', eventData);
                   
-                  if (result === true) {
+                  if (triggerResult === true) {
                     console.log('[Pusher] ✅ Event triggered successfully (normal tx):', eventData);
-                    // Event triggered successfully - client events are working!
+                    console.log('[Pusher] Event should be broadcast to all subscribers of channel:', `chatroom-${chatroomId}`);
                   } else {
-                    console.warn('[Pusher] ⚠️ Event trigger returned:', result, '- may need to enable client events in Pusher Dashboard');
+                    console.warn('[Pusher] ⚠️ Event trigger returned:', triggerResult);
                   }
                 } catch (error: any) {
-                  // Client events might not be enabled in Pusher app settings
                   console.error('[Pusher] ❌ Failed to trigger event:', error?.message || error);
-                  if (error?.message?.includes('client event') || error?.message?.includes('not enabled')) {
-                    console.error('[Pusher] 💡 Make sure "Enable client events" is ON in Pusher Dashboard:');
-                    console.error('[Pusher]    1. Go to https://dashboard.pusher.com/');
-                    console.error('[Pusher]    2. Select your app');
-                    console.error('[Pusher]    3. Settings → App Settings');
-                    console.error('[Pusher]    4. Enable "Enable client events"');
-                  }
                 }
               } else {
                 console.warn('[Pusher] ⚠️ Channel ref not available');
               }
-            }, 1000); // Wait 1 second for transaction to be processed
+            };
+            
+            // Start waiting for confirmation
+            waitForConfirmation();
             // Refresh chats after sending - polling will pick up the new message
             // No need to reload the page anymore
           },
