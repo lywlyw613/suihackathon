@@ -35,16 +35,16 @@ if (typeof window !== 'undefined' && PUSHER_KEY) {
     const errorMessage = err?.error?.data?.message || err?.message || 'No error message';
     
     // Filter out common non-critical errors
-    if (errorCode !== 1006 && errorCode !== 1000 && errorCode !== undefined) {
-      console.warn('[Pusher] ⚠️ Connection error:', {
-        type: errorType,
-        code: errorCode,
-        message: errorMessage,
-      });
-    } else if (errorCode === undefined && errorType === 'PusherError') {
-      // This might be a client event error - check if it's about client events
-      // Don't log as error if it's just about client events not being enabled
-      console.warn('[Pusher] ⚠️ Client event may not be enabled in Pusher Dashboard');
+    if (errorCode !== 1006 && errorCode !== 1000) {
+      // Only log if it's a real error (not undefined)
+      if (errorCode !== undefined) {
+        console.warn('[Pusher] ⚠️ Connection error:', {
+          type: errorType,
+          code: errorCode,
+          message: errorMessage,
+        });
+      }
+      // Don't log undefined errors as they're often false positives
     }
   });
   

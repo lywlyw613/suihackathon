@@ -370,6 +370,7 @@ export function ChatroomDetail() {
           // Wait for subscription to be successful
           channel.bind('pusher:subscription_succeeded', () => {
             console.log(`[Pusher] ✅ Subscribed to ${channelName}`);
+            console.log(`[Pusher] Channel state: ${channel.state}, subscribed: ${channel.subscribed}`);
           });
 
           // Listen for new message events (client events must start with 'client-')
@@ -667,27 +668,38 @@ export function ChatroomDetail() {
                       setTimeout(() => {
                         if (pusherChannelRef.current) {
                           try {
-                            // Check if channel is subscribed before triggering
-                            if (pusherChannelRef.current.subscribed) {
-                              const eventData = {
-                                chatroomId,
-                                timestamp: Date.now(),
-                                sender: account.address,
-                              };
-                              console.log('[Pusher] 📤 Attempting to trigger event (sponsored tx)...');
-                              const result = pusherChannelRef.current.trigger('client-new-message', eventData);
-                              console.log('[Pusher] ✅ Event triggered (sponsored tx):', eventData, 'Result:', result);
+                            const channel = pusherChannelRef.current;
+                            const channelState = channel.state;
+                            const isSubscribed = channel.subscribed;
+                            
+                            console.log('[Pusher] 📤 Attempting to trigger event (sponsored tx)...');
+                            console.log('[Pusher] Channel state:', channelState, 'Subscribed:', isSubscribed);
+                            
+                            // Try to trigger even if subscription status is unclear
+                            // Pusher will handle it gracefully
+                            const eventData = {
+                              chatroomId,
+                              timestamp: Date.now(),
+                              sender: account.address,
+                            };
+                            
+                            const result = channel.trigger('client-new-message', eventData);
+                            
+                            if (result === true) {
+                              console.log('[Pusher] ✅ Event triggered successfully (sponsored tx):', eventData);
                             } else {
-                              console.warn('[Pusher] ⚠️ Channel not subscribed yet (state:', pusherChannelRef.current.state, '), will rely on polling');
+                              console.warn('[Pusher] ⚠️ Event trigger returned:', result, '- may need to enable client events in Pusher Dashboard');
                             }
                           } catch (error: any) {
                             // Client events might not be enabled in Pusher app settings
                             console.error('[Pusher] ❌ Failed to trigger event:', error?.message || error);
-                            console.error('[Pusher] 💡 Make sure "Enable client events" is ON in Pusher Dashboard:');
-                            console.error('[Pusher]    1. Go to https://dashboard.pusher.com/');
-                            console.error('[Pusher]    2. Select your app');
-                            console.error('[Pusher]    3. Settings → App Settings');
-                            console.error('[Pusher]    4. Enable "Enable client events"');
+                            if (error?.message?.includes('client event') || error?.message?.includes('not enabled')) {
+                              console.error('[Pusher] 💡 Make sure "Enable client events" is ON in Pusher Dashboard:');
+                              console.error('[Pusher]    1. Go to https://dashboard.pusher.com/');
+                              console.error('[Pusher]    2. Select your app');
+                              console.error('[Pusher]    3. Settings → App Settings');
+                              console.error('[Pusher]    4. Enable "Enable client events"');
+                            }
                           }
                         } else {
                           console.warn('[Pusher] ⚠️ Channel ref not available');
@@ -735,27 +747,38 @@ export function ChatroomDetail() {
             setTimeout(() => {
               if (pusherChannelRef.current) {
                 try {
-                  // Check if channel is subscribed before triggering
-                  if (pusherChannelRef.current.subscribed) {
-                    const eventData = {
-                      chatroomId,
-                      timestamp: Date.now(),
-                      sender: account.address,
-                    };
-                    console.log('[Pusher] 📤 Attempting to trigger event (normal tx)...');
-                    const result = pusherChannelRef.current.trigger('client-new-message', eventData);
-                    console.log('[Pusher] ✅ Event triggered (normal tx):', eventData, 'Result:', result);
+                  const channel = pusherChannelRef.current;
+                  const channelState = channel.state;
+                  const isSubscribed = channel.subscribed;
+                  
+                  console.log('[Pusher] 📤 Attempting to trigger event (normal tx)...');
+                  console.log('[Pusher] Channel state:', channelState, 'Subscribed:', isSubscribed);
+                  
+                  // Try to trigger even if subscription status is unclear
+                  // Pusher will handle it gracefully
+                  const eventData = {
+                    chatroomId,
+                    timestamp: Date.now(),
+                    sender: account.address,
+                  };
+                  
+                  const result = channel.trigger('client-new-message', eventData);
+                  
+                  if (result === true) {
+                    console.log('[Pusher] ✅ Event triggered successfully (normal tx):', eventData);
                   } else {
-                    console.warn('[Pusher] ⚠️ Channel not subscribed yet (state:', pusherChannelRef.current.state, '), will rely on polling');
+                    console.warn('[Pusher] ⚠️ Event trigger returned:', result, '- may need to enable client events in Pusher Dashboard');
                   }
                 } catch (error: any) {
                   // Client events might not be enabled in Pusher app settings
                   console.error('[Pusher] ❌ Failed to trigger event:', error?.message || error);
-                  console.error('[Pusher] 💡 Make sure "Enable client events" is ON in Pusher Dashboard:');
-                  console.error('[Pusher]    1. Go to https://dashboard.pusher.com/');
-                  console.error('[Pusher]    2. Select your app');
-                  console.error('[Pusher]    3. Settings → App Settings');
-                  console.error('[Pusher]    4. Enable "Enable client events"');
+                  if (error?.message?.includes('client event') || error?.message?.includes('not enabled')) {
+                    console.error('[Pusher] 💡 Make sure "Enable client events" is ON in Pusher Dashboard:');
+                    console.error('[Pusher]    1. Go to https://dashboard.pusher.com/');
+                    console.error('[Pusher]    2. Select your app');
+                    console.error('[Pusher]    3. Settings → App Settings');
+                    console.error('[Pusher]    4. Enable "Enable client events"');
+                  }
                 }
               } else {
                 console.warn('[Pusher] ⚠️ Channel ref not available');
