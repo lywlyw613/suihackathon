@@ -10,18 +10,13 @@ import { EditChatroomNameModal } from "./EditChatroomNameModal";
 import { getAvatarUrl } from "../lib/avatar";
 import { getUserProfile } from "../lib/user-profile";
 
-interface ChatroomMember {
-  address: string;
-  avatarUrl: string;
-}
-
 export function ChatroomList() {
   const { chatrooms, isLoading } = useChatrooms();
   const navigate = useNavigate();
   const currentAccount = useCurrentAccount();
   const [chatroomNames, setChatroomNames] = useState<Record<string, string>>({});
   const [editingChatroomId, setEditingChatroomId] = useState<string | null>(null);
-  const [chatroomMembers, setChatroomMembers] = useState<Record<string, ChatroomMember[]>>({});
+  const [chatroomCreatorAvatars, setChatroomCreatorAvatars] = useState<Record<string, string>>({});
 
   // Load chatroom names when account or chatrooms change
   useEffect(() => {
@@ -41,35 +36,25 @@ export function ChatroomList() {
     }
   }, [currentAccount?.address, chatrooms.length]);
 
-  // Load members for each chatroom (from creator and any Key owners we can find)
+  // Load creator avatars for each chatroom
   useEffect(() => {
-    const loadMembers = async () => {
-      const membersMap: Record<string, ChatroomMember[]> = {};
+    const loadCreatorAvatars = async () => {
+      const avatarMap: Record<string, string> = {};
       
       for (const chatroom of chatrooms) {
-        const members: ChatroomMember[] = [];
-        // Add creator
         try {
           const creatorProfile = await getUserProfile(chatroom.creator);
-          members.push({
-            address: chatroom.creator,
-            avatarUrl: getAvatarUrl(chatroom.creator, creatorProfile),
-          });
+          avatarMap[chatroom.objectId] = getAvatarUrl(chatroom.creator, creatorProfile);
         } catch (error) {
-          members.push({
-            address: chatroom.creator,
-            avatarUrl: getAvatarUrl(chatroom.creator),
-          });
+          avatarMap[chatroom.objectId] = getAvatarUrl(chatroom.creator);
         }
-        
-        membersMap[chatroom.objectId] = members;
       }
       
-      setChatroomMembers(membersMap);
+      setChatroomCreatorAvatars(avatarMap);
     };
 
     if (chatrooms.length > 0) {
-      loadMembers();
+      loadCreatorAvatars();
     }
   }, [chatrooms]);
 
@@ -107,11 +92,7 @@ export function ChatroomList() {
         {chatrooms.map((chatroom) => {
           const customName = chatroomNames[chatroom.objectId];
           const displayName = customName || `Chatroom ${formatAddress(chatroom.objectId)}`;
-          const members = chatroomMembers[chatroom.objectId] || [];
-          const creatorMember = members.find(m => m.address === chatroom.creator) || {
-            address: chatroom.creator,
-            avatarUrl: getAvatarUrl(chatroom.creator),
-          };
+          const creatorAvatarUrl = chatroomCreatorAvatars[chatroom.objectId] || getAvatarUrl(chatroom.creator);
           
           return (
             <Card
@@ -138,7 +119,7 @@ export function ChatroomList() {
                 >
                   {/* Avatar */}
                   <img
-                    src={creatorMember.avatarUrl}
+                    src={creatorAvatarUrl}
                     alt={formatAddress(chatroom.creator)}
                     style={{
                       width: 48,
@@ -183,39 +164,6 @@ export function ChatroomList() {
                     >
                       {displayName}
                     </Text>
-                    <Flex align="center" gap="2" mb="1">
-                      {/* Member avatars */}
-                      {members.length > 0 && (
-                        <Flex gap="1" align="center">
-                          {members.slice(0, 3).map((member, idx) => (
-                            <img
-                              key={member.address}
-                              src={member.avatarUrl}
-                              alt={formatAddress(member.address)}
-                              style={{
-                                width: 20,
-                                height: 20,
-                                borderRadius: "50%",
-                                border: "1px solid var(--x-border)",
-                                marginLeft: idx > 0 ? -8 : 0,
-                              }}
-                              onError={(e) => {
-                                const target = e.target as HTMLImageElement;
-                                target.style.display = "none";
-                              }}
-                            />
-                          ))}
-                          {members.length > 3 && (
-                            <Text size="1" style={{ color: "var(--x-text-secondary)", marginLeft: -4 }}>
-                              +{members.length - 3}
-                            </Text>
-                          )}
-                        </Flex>
-                      )}
-                      <Text size="2" style={{ color: "var(--x-text-secondary)" }}>
-                        {members.length} {members.length === 1 ? "member" : "members"}
-                      </Text>
-                    </Flex>
                     <Text size="1" style={{ color: "var(--x-text-secondary)" }}>
                       Created {chatroom.createdAt ? formatDistanceToNow(new Date(chatroom.createdAt), { addSuffix: true }) : "Unknown"}
                     </Text>
