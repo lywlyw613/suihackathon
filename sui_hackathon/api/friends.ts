@@ -114,10 +114,10 @@ export default async function handler(req: any, res: any) {
 
         // Check if profile exists
         let profile = await profilesCollection.findOne({ address });
-        console.log('Current profile:', profile ? { address: profile.address, friendsCount: profile.friends?.length || 0 } : 'not found');
+        console.log('Current profile:', profile ? { address: profile.address, friendsCount: profile.friends?.length || 0, hasFriends: !!profile.friends } : 'not found');
         
         // Check if friend already exists
-        if (profile?.friends?.includes(friendAddress)) {
+        if (profile?.friends && Array.isArray(profile.friends) && profile.friends.includes(friendAddress)) {
           return res.status(200).json({
             success: true,
             added: false,
@@ -147,7 +147,16 @@ export default async function handler(req: any, res: any) {
           });
         }
 
-        // Profile exists, update it
+        // Profile exists, ensure friends array exists and add friend
+        // First, ensure friends field is an array
+        if (!profile.friends || !Array.isArray(profile.friends)) {
+          await profilesCollection.updateOne(
+            { address },
+            { $set: { friends: [] } }
+          );
+        }
+
+        // Now add the friend
         const result = await profilesCollection.updateOne(
           { address },
           {
