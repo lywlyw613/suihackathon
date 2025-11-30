@@ -164,9 +164,14 @@ export function ChatroomList() {
                     >
                       {displayName}
                     </Text>
-                    <Text size="1" style={{ color: "var(--x-text-secondary)" }}>
-                      Created {chatroom.createdAt ? formatDistanceToNow(new Date(chatroom.createdAt), { addSuffix: true }) : "Unknown"}
-                    </Text>
+                    <Flex align="center" gap="2">
+                      <Text size="2" style={{ color: "var(--x-text-secondary)" }}>
+                        Created by {formatAddress(chatroom.creator)}
+                      </Text>
+                      <Text size="1" style={{ color: "var(--x-text-secondary)" }}>
+                        • {chatroom.createdAt ? formatDistanceToNow(new Date(chatroom.createdAt), { addSuffix: true }) : "Unknown"}
+                      </Text>
+                    </Flex>
                   </Box>
                 </Flex>
                 <Flex gap="2" align="center">
