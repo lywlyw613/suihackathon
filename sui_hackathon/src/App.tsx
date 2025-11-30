@@ -5,6 +5,7 @@ import { HomePage } from "./components/HomePage";
 import { ChatroomDetail } from "./components/ChatroomDetail";
 import { ProfilePage } from "./components/ProfilePage";
 import { CreateChatroomPage } from "./components/CreateChatroomPage";
+import { ZkLoginCallback } from "./components/ZkLoginCallback";
 import { getZkLoginAccount } from "./lib/zklogin-account";
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -20,6 +21,8 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 function App() {
   return (
     <BrowserRouter>
+      {/* Global OAuth callback handler - must be outside Routes to catch all routes */}
+      <ZkLoginCallback />
       <Routes>
         <Route path="/login" element={<LoginPage />} />
         <Route
