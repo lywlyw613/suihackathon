@@ -17,14 +17,19 @@ export function ChatroomList() {
 
   // Load chatroom names when account or chatrooms change
   useEffect(() => {
+    // Only load chatroom names if user has chatrooms and is logged in
     if (currentAccount?.address && chatrooms.length > 0) {
       getAllChatroomNames(currentAccount.address)
         .then((names) => {
           setChatroomNames(names);
         })
-        .catch((error) => {
-          console.error("Error loading chatroom names:", error);
+        .catch(() => {
+          // Silently fail - don't log errors for expected database connection issues
+          // The API will return empty object on error, which is fine
         });
+    } else {
+      // Clear chatroom names if no chatrooms
+      setChatroomNames({});
     }
   }, [currentAccount?.address, chatrooms.length]);
 

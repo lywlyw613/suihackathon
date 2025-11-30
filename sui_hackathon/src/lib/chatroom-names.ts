@@ -45,16 +45,19 @@ export async function getChatroomName(
 export async function getAllChatroomNames(
   walletAddress: string
 ): Promise<Record<string, string>> {
+  // Early return if no wallet address
+  if (!walletAddress) {
+    return {};
+  }
+
   try {
     const response = await fetch(
       `${API_BASE_URL}/api/chatroom-names?walletAddress=${encodeURIComponent(walletAddress)}`
     );
     
     if (!response.ok) {
-      // Don't log errors for 503 or 500 - these are expected database connection issues
-      if (response.status !== 503 && response.status !== 500) {
-        console.error('Failed to fetch chatroom names:', response.status);
-      }
+      // Silently return empty object for any error (503, 500, etc.)
+      // Don't log - these are expected when MongoDB is unavailable
       return {};
     }
     
