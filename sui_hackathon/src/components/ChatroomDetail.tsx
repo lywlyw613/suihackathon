@@ -32,6 +32,7 @@ export function ChatroomDetail() {
   const pusherChannelRef = useRef<any>(null); // Store Pusher channel reference
   const [showInfoModal, setShowInfoModal] = useState(false);
   const [senderAvatars, setSenderAvatars] = useState<Record<string, string>>({});
+  const [senderProfiles, setSenderProfiles] = useState<Record<string, { name?: string }>>({});
 
   // Fetch user's Key for this chatroom
   const { data: ownedObjects } = useSuiClientQuery(
@@ -50,26 +51,32 @@ export function ChatroomDetail() {
     }
   );
 
-  // Load avatars for all senders
+  // Load avatars and profiles for all senders
   useEffect(() => {
-    const loadAvatars = async () => {
+    const loadSenderData = async () => {
       const avatarMap: Record<string, string> = {};
+      const profileMap: Record<string, { name?: string }> = {};
       const uniqueSenders = new Set(chats.map(chat => chat.sender));
       
       for (const sender of uniqueSenders) {
         try {
           const profile = await getUserProfile(sender);
           avatarMap[sender] = getAvatarUrl(sender, profile);
+          profileMap[sender] = {
+            name: profile?.name,
+          };
         } catch (error) {
           avatarMap[sender] = getAvatarUrl(sender);
+          profileMap[sender] = {};
         }
       }
       
       setSenderAvatars(avatarMap);
+      setSenderProfiles(profileMap);
     };
 
     if (chats.length > 0) {
-      loadAvatars();
+      loadSenderData();
     }
   }, [chats]);
 
@@ -741,6 +748,8 @@ export function ChatroomDetail() {
             {chats.map((chat) => {
               const isOwnMessage = chat.sender === account?.address;
               const avatarUrl = senderAvatars[chat.sender] || getAvatarUrl(chat.sender);
+              const senderProfile = senderProfiles[chat.sender];
+              const senderDisplayName = senderProfile?.name || formatAddress(chat.sender);
               
               return (
                 <Flex
@@ -827,7 +836,7 @@ export function ChatroomDetail() {
                           weight="medium" 
                           style={{ color: "var(--x-white)" }}
                         >
-                          {formatAddress(chat.sender)}
+                          {senderDisplayName}
                         </Text>
                       )}
                       <Text 
