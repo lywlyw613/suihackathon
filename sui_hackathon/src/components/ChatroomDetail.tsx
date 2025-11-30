@@ -669,11 +669,10 @@ export function ChatroomDetail() {
                         if (pusherChannelRef.current) {
                           try {
                             const channel = pusherChannelRef.current;
-                            const channelState = channel.state;
                             const isSubscribed = channel.subscribed;
                             
                             console.log('[Pusher] 📤 Attempting to trigger event (sponsored tx)...');
-                            console.log('[Pusher] Channel state:', channelState, 'Subscribed:', isSubscribed);
+                            console.log('[Pusher] Channel subscribed:', isSubscribed);
                             
                             // Try to trigger even if subscription status is unclear
                             // Pusher will handle it gracefully
