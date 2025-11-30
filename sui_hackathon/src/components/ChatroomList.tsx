@@ -3,13 +3,12 @@ import { formatAddress } from "../lib/utils";
 import { useNavigate } from "react-router-dom";
 import { formatDistanceToNow } from "date-fns";
 import { Box, Flex, Text, Card, Button, Spinner } from "@radix-ui/themes";
-import { useCurrentAccount, useSuiClientQuery } from "@mysten/dapp-kit";
+import { useCurrentAccount } from "@mysten/dapp-kit";
 import { useState, useEffect } from "react";
 import { getAllChatroomNames } from "../lib/chatroom-names";
 import { EditChatroomNameModal } from "./EditChatroomNameModal";
 import { getAvatarUrl } from "../lib/avatar";
 import { getUserProfile } from "../lib/user-profile";
-import { PACKAGE_ID, MODULE_NAMES } from "../lib/constants";
 
 interface ChatroomMember {
   address: string;

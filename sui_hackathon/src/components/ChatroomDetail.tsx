@@ -12,7 +12,6 @@ import { isSponsoredTransactionsEnabled, getSponsorApiUrl } from "../lib/sponsor
 import { Box, Flex, Text, Button, TextField, Card, Switch } from "@radix-ui/themes";
 import { getAvatarUrl } from "../lib/avatar";
 import { getUserProfile } from "../lib/user-profile";
-import { useMembersFromChats } from "../hooks/useChatroomMembers";
 import { ChatroomInfoModal } from "./ChatroomInfoModal";
 
 export function ChatroomDetail() {
@@ -33,7 +32,6 @@ export function ChatroomDetail() {
   const pusherChannelRef = useRef<any>(null); // Store Pusher channel reference
   const [showInfoModal, setShowInfoModal] = useState(false);
   const [senderAvatars, setSenderAvatars] = useState<Record<string, string>>({});
-  const members = useMembersFromChats(chats);
 
   // Fetch user's Key for this chatroom
   const { data: ownedObjects } = useSuiClientQuery(

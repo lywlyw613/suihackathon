@@ -1,6 +1,5 @@
 import { Dialog, Box, Flex, Text, Button } from "@radix-ui/themes";
 import { useSuiClientQuery } from "@mysten/dapp-kit";
-import { PACKAGE_ID, MODULE_NAMES } from "../lib/constants";
 import { formatAddress } from "../lib/utils";
 import { formatDistanceToNow } from "date-fns";
 
