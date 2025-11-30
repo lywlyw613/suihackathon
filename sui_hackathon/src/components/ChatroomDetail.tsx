@@ -376,17 +376,14 @@ export function ChatroomDetail() {
           // Listen for new message events (client events must start with 'client-')
           const messageHandler = (data: any) => {
             console.log(`[Pusher] 📨 New message event received for ${channelName}:`, data);
-            console.log(`[Pusher] Event data:`, JSON.stringify(data, null, 2));
             
-            // Trigger refetch with retry mechanism to handle chain confirmation delay
+            // Immediately trigger refetch - polling will also catch it, but this makes it faster
             if (chatroomId) {
-              console.log(`[Pusher] 🔄 Triggering chat refresh for chatroom: ${chatroomId}`);
+              console.log(`[Pusher] 🔄 Triggering immediate chat refresh for chatroom: ${chatroomId}`);
               
-              const fetchWithRetry = async (retries = 0, maxRetries = 5) => {
+              // Wait a short time for transaction to be confirmed, then check
+              setTimeout(async () => {
                 try {
-                  // Wait a bit for transaction to be confirmed on-chain
-                  await new Promise(resolve => setTimeout(resolve, 2000));
-                  
                   const chatroom = await client.getObject({
                     id: chatroomId,
                     options: { showContent: true },
@@ -409,23 +406,16 @@ export function ChatroomDetail() {
                     if (parsedLastChatId && parsedLastChatId !== lastCheckedChatIdRef.current) {
                       console.log(`[Pusher] 🔄 Updating previousChatId to: ${parsedLastChatId}`);
                       setPreviousChatId(parsedLastChatId);
-                    } else if (retries < maxRetries) {
-                      // If no change, retry after a delay
-                      console.log(`[Pusher] ⏳ No change detected, retrying... (${retries + 1}/${maxRetries})`);
-                      setTimeout(() => fetchWithRetry(retries + 1, maxRetries), 1000);
+                      lastCheckedChatIdRef.current = parsedLastChatId;
                     } else {
-                      console.warn('[Pusher] ⚠️ Max retries reached, transaction may not be confirmed yet');
+                      console.log(`[Pusher] ⏳ No change yet, polling will catch it soon`);
                     }
                   }
                 } catch (err) {
                   console.error('[Pusher] ❌ Error refetching chatroom after event:', err);
-                  if (retries < maxRetries) {
-                    setTimeout(() => fetchWithRetry(retries + 1, maxRetries), 1000);
-                  }
+                  // Polling will catch it anyway
                 }
-              };
-              
-              fetchWithRetry();
+              }, 1500); // Wait 1.5 seconds for transaction to be confirmed
             }
           };
           
