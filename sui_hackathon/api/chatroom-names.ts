@@ -21,13 +21,15 @@ async function connectToDatabase() {
     throw new Error('MONGODB_URI environment variable is not set');
   }
 
-  // Don't set tls explicitly - MongoDB Atlas connection string already includes TLS info
+  // MongoDB Atlas connection options
+  // Note: For Vercel serverless functions, we need to ensure proper TLS handling
   const client = new MongoClient(uri, {
-    connectTimeoutMS: 10000,
-    serverSelectionTimeoutMS: 10000,
+    connectTimeoutMS: 15000,
+    serverSelectionTimeoutMS: 15000,
     maxPoolSize: 10,
     minPoolSize: 1,
-    // Let MongoDB driver handle TLS from connection string
+    // Don't set tls options - let the connection string handle it
+    // The mongodb+srv:// protocol automatically uses TLS
   });
   
   try {
