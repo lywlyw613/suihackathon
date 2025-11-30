@@ -31,19 +31,20 @@ async function connectToDatabase() {
     throw new Error('MONGODB_URI environment variable is not set');
   }
 
+  // Don't set tls explicitly - MongoDB Atlas connection string already includes TLS info
   const client = new MongoClient(uri, {
     maxPoolSize: 10,
     serverSelectionTimeoutMS: 10000,
     connectTimeoutMS: 10000,
     minPoolSize: 1,
-    tls: true,
-    tlsAllowInvalidCertificates: false,
+    // Let MongoDB driver handle TLS from connection string
   });
   
   try {
     await client.connect();
   } catch (error: any) {
     console.error('MongoDB connection error:', error);
+    // Don't throw - let the handler catch and return 503
     throw new Error(`Failed to connect to MongoDB: ${error.message}`);
   }
   const db = client.db('sui_chat');
