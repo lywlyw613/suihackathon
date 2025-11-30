@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { getGoogleOAuthUrl, parseJWT } from "../lib/zklogin";
 import { completeZkLogin } from "../lib/zklogin-full";
+import { saveZkLoginAccount, clearZkLoginAccount, getZkLoginAccount, ZkLoginAccount } from "../lib/zklogin-account";
 
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || "";
 
@@ -31,22 +32,33 @@ export function useZkLogin() {
             const claims = parseJWT(idToken);
             console.log("Google OAuth successful:", claims);
             
-            // Store token temporarily
-            localStorage.setItem("zklogin_token", idToken);
-            localStorage.setItem("zklogin_email", claims.email || "");
-            
             // Try to complete zkLogin flow
             try {
               const zkLoginResult = await completeZkLogin(idToken);
               console.log("zkLogin result:", zkLoginResult);
               
-              // Store zkLogin address
+              // Save zkLogin account
               if (zkLoginResult.address) {
-                localStorage.setItem("zklogin_address", zkLoginResult.address);
+                const zkAccount: ZkLoginAccount = {
+                  address: zkLoginResult.address,
+                  email: claims.email || "",
+                  jwt: idToken,
+                  salt: zkLoginResult.salt || undefined,
+                  ephemeralKeypair: zkLoginResult.ephemeralKeypair || undefined,
+                  proof: zkLoginResult.proof || undefined,
+                };
+                saveZkLoginAccount(zkAccount);
+                console.log("zkLogin account saved:", zkAccount);
               }
             } catch (zkError) {
               console.warn("zkLogin proof generation failed (using OAuth only):", zkError);
-              // Continue with OAuth-only flow for hackathon demo
+              // Still save basic account info for OAuth-only mode
+              const zkAccount: ZkLoginAccount = {
+                address: "", // Will be generated later
+                email: claims.email || "",
+                jwt: idToken,
+              };
+              saveZkLoginAccount(zkAccount);
             }
             
             // Navigate to home

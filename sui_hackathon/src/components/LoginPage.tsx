@@ -3,17 +3,20 @@ import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Box, Card, Flex, Heading, Text, Button, Separator } from "@radix-ui/themes";
 import { useZkLogin } from "../hooks/useZkLogin";
+import { getZkLoginAccount } from "../lib/zklogin-account";
 
 export function LoginPage() {
   const account = useCurrentAccount();
   const navigate = useNavigate();
   const { handleGoogleLogin, isLoading: zkLoginLoading } = useZkLogin();
+  const zkAccount = getZkLoginAccount();
 
   useEffect(() => {
-    if (account) {
+    // Redirect if user has wallet connected OR zkLogin account
+    if (account || zkAccount) {
       navigate("/home");
     }
-  }, [account, navigate]);
+  }, [account, zkAccount, navigate]);
 
   return (
     <Flex

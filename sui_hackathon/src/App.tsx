@@ -5,10 +5,16 @@ import { HomePage } from "./components/HomePage";
 import { ChatroomDetail } from "./components/ChatroomDetail";
 import { ProfilePage } from "./components/ProfilePage";
 import { CreateChatroomPage } from "./components/CreateChatroomPage";
+import { getZkLoginAccount } from "./lib/zklogin-account";
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const account = useCurrentAccount();
-  return account ? <>{children}</> : <Navigate to="/login" replace />;
+  const zkAccount = getZkLoginAccount();
+  
+  // Allow access if user has wallet connected OR zkLogin account
+  const isAuthenticated = account || zkAccount;
+  
+  return isAuthenticated ? <>{children}</> : <Navigate to="/login" replace />;
 }
 
 function App() {
